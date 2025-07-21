@@ -1,0 +1,8 @@
+from tradingagents.api.stock_api import check_service_status
+
+result = check_service_status()
+
+if result:
+    print("✅ 函数调用成功")
+else:
+    print("❌ 函数调用失败")

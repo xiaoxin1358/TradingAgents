@@ -16,7 +16,8 @@ if dataflows_path not in sys.path:
     sys.path.append(dataflows_path)
 
 try:
-    from stock_data_service import get_stock_data_service
+    from stock_data_service import get_stock_data_service     #原来的，2025.7.16
+    #from ..dataflows.stock_data_service import get_stock_data_service
     SERVICE_AVAILABLE = True
 except ImportError as e:
     print(f"⚠️ 股票数据服务不可用: {e}")
@@ -231,6 +232,7 @@ def check_service_status() -> Dict[str, Any]:
         try:
             # 尝试获取一个股票名称来测试API
             test_name = service.tdx_provider._get_stock_name('000001')
+            print(test_name)
             if test_name and test_name != '000001':
                 tdx_status = 'available'
             else:

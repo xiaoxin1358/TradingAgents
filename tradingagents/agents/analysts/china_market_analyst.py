@@ -12,7 +12,7 @@ def create_china_market_analyst(llm, toolkit):
         
         # 中国股票分析工具
         tools = [
-            toolkit.get_china_stock_data,
+            toolkit.get_china_stock_data,#通达信函数
             toolkit.get_china_market_overview,
             toolkit.get_YFin_data,  # 备用数据源
         ]

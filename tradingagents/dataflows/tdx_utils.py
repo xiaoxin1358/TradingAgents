@@ -79,6 +79,8 @@ class TongDaXinDataProvider:
                     {'ip': '115.238.90.165', 'port': 7709},
                     {'ip': '180.153.18.170', 'port': 7709},
                     {'ip': '119.147.212.81', 'port': 7709},  # 备用
+                    #以下是自己找的
+                    {'ip': '124.71.85.110', 'port': 7709},
                 ]
             else:
                 print(f"🔍 [DEBUG] 从配置文件加载了 {len(working_servers)} 个服务器")

@@ -1,0 +1,4 @@
+set PYTHONIOENCODING=utf-8
+chcp 65001
+python -X utf8 your_script.py
+用这个防止gbk错误，三个一起
