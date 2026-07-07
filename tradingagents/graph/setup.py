@@ -20,6 +20,12 @@ from tradingagents.agents import (
     create_sentiment_analyst,
     create_trader,
 )
+from tradingagents.agents.pre_analyst import (
+    create_cyclical_analyst,
+    create_defensive_analyst,
+    create_growth_analyst,
+    create_sector_manager,
+)
 from tradingagents.agents.utils.agent_states import AgentState
 
 from .analyst_execution import build_analyst_execution_plan
@@ -59,7 +65,8 @@ class GraphSetup:
         self.conditional_logic = conditional_logic
 
     def setup_graph(
-        self, selected_analysts=("market", "social", "news", "fundamentals")
+        self, selected_analysts=("market", "social", "news", "fundamentals"),
+        enable_pre_analyst=False,
     ):
         """Set up and compile the agent workflow graph.
 
@@ -69,6 +76,9 @@ class GraphSetup:
                 - "social": Social media analyst
                 - "news": News analyst
                 - "fundamentals": Fundamentals analyst
+            enable_pre_analyst (bool): When True, prepend the sector-industry
+                debate (Cyclical / Growth / Defensive → Sector Manager) before
+                the per-ticker analyst pipeline.  Default False for back-compat.
         """
         plan = build_analyst_execution_plan(selected_analysts)
 
@@ -94,6 +104,18 @@ class GraphSetup:
         # Create workflow
         workflow = StateGraph(AgentState)
 
+        # ── Pre-Analyst: sector / industry debate (optional) ──────────
+        if enable_pre_analyst:
+            sector_cyclical = create_cyclical_analyst(self.quick_thinking_llm)
+            sector_growth = create_growth_analyst(self.quick_thinking_llm)
+            sector_defensive = create_defensive_analyst(self.quick_thinking_llm)
+            sector_manager_node = create_sector_manager(self.deep_thinking_llm)
+
+            workflow.add_node("Cyclical Analyst", sector_cyclical)
+            workflow.add_node("Growth Analyst", sector_growth)
+            workflow.add_node("Defensive Analyst", sector_defensive)
+            workflow.add_node("Sector Manager", sector_manager_node)
+
         # Add analyst nodes to the graph
         for spec in plan.specs:
             workflow.add_node(spec.agent_node, analyst_factories[spec.key]())
@@ -111,8 +133,41 @@ class GraphSetup:
         workflow.add_node("Portfolio Manager", portfolio_manager_node)
 
         # Define edges
-        # Start with the first analyst
-        workflow.add_edge(START, plan.specs[0].agent_node)
+        if enable_pre_analyst:
+            # ── Pre-Analyst routing ──────────────────────────────────
+            workflow.add_edge(START, "Cyclical Analyst")
+            workflow.add_conditional_edges(
+                "Cyclical Analyst",
+                self.conditional_logic.should_continue_sector_debate,
+                {
+                    "Growth Analyst": "Growth Analyst",
+                    "Defensive Analyst": "Defensive Analyst",
+                    "Sector Manager": "Sector Manager",
+                },
+            )
+            workflow.add_conditional_edges(
+                "Growth Analyst",
+                self.conditional_logic.should_continue_sector_debate,
+                {
+                    "Cyclical Analyst": "Cyclical Analyst",
+                    "Defensive Analyst": "Defensive Analyst",
+                    "Sector Manager": "Sector Manager",
+                },
+            )
+            workflow.add_conditional_edges(
+                "Defensive Analyst",
+                self.conditional_logic.should_continue_sector_debate,
+                {
+                    "Cyclical Analyst": "Cyclical Analyst",
+                    "Growth Analyst": "Growth Analyst",
+                    "Sector Manager": "Sector Manager",
+                },
+            )
+            # After sector debate → enter the per-ticker analyst pipeline
+            workflow.add_edge("Sector Manager", plan.specs[0].agent_node)
+        else:
+            # Start with the first analyst (original behaviour)
+            workflow.add_edge(START, plan.specs[0].agent_node)
 
         # Connect analysts in sequence
         for i, spec in enumerate(plan.specs):

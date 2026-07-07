@@ -102,6 +102,8 @@ class DeepSeekChatOpenAI(NormalizedChatOpenAI):
 
     def _get_request_payload(self, input_, *, stop=None, **kwargs):
         payload = super()._get_request_payload(input_, stop=stop, **kwargs)
+        # DeepSeek thinking mode — send via extra_body per official docs
+        payload.setdefault("extra_body", {})["thinking"] = {"type": "enabled"}
         outgoing = payload.get("messages", [])
         for message_dict, message in zip(outgoing, _input_to_messages(input_), strict=False):
             if not isinstance(message, AIMessage):
@@ -325,8 +327,9 @@ class OpenAIClient(BaseLLMClient):
         for key in _PASSTHROUGH_KWARGS:
             if key not in self.kwargs:
                 continue
-            if key == "reasoning_effort" and not _supports_reasoning_effort(self.model):
-                continue
+            if key == "reasoning_effort":
+                if not _supports_reasoning_effort(self.model) and self.provider != "deepseek":
+                    continue
             llm_kwargs[key] = self.kwargs[key]
 
         # The subclass (provider quirks) comes from the registry spec.

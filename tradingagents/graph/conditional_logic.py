@@ -71,3 +71,24 @@ class ConditionalLogic:
         if state["risk_debate_state"]["latest_speaker"].startswith("Conservative"):
             return "Neutral Analyst"
         return "Aggressive Analyst"
+
+    def should_continue_sector_debate(self, state: AgentState) -> str:
+        """Determine if the pre-analyst sector debate should continue.
+
+        Three analysts (cyclical → growth → defensive) take turns in a
+        fixed rotation.  When ``count >= 3 * max_rounds`` the debate ends
+        and flow moves to the Sector Manager.
+        """
+        sector_state = state.get("sector_debate_state", {})
+        count = sector_state.get("count", 0)
+
+        if count >= 3 * self.max_risk_discuss_rounds:
+            return "Sector Manager"
+
+        latest = sector_state.get("latest_speaker", "")
+        if latest == "cyclical":
+            return "Growth Analyst"
+        if latest == "growth":
+            return "Defensive Analyst"
+        # Default / defensive just spoke → back to cyclical
+        return "Cyclical Analyst"

@@ -3,6 +3,10 @@ from typing import Annotated
 from langgraph.graph import MessagesState
 from typing_extensions import TypedDict
 
+from tradingagents.agents.pre_analyst.sector_debate_state import (
+    SectorDebateState,
+)
+
 
 # Researcher team state
 class InvestDebateState(TypedDict):
@@ -51,6 +55,14 @@ class AgentState(MessagesState):
     trade_date: Annotated[str, "What date we are trading at"]
 
     sender: Annotated[str, "Agent that sent this message"]
+
+    # pre-analyst sector debate step (optional; enabled via enable_pre_analyst)
+    sector_debate_state: Annotated[
+        SectorDebateState, "Current state of the sector / industry debate"
+    ]
+    sector_recommendation: Annotated[
+        str, "Sector Manager's final industry recommendation"
+    ]
 
     # research step
     market_report: Annotated[str, "Report from the Market Analyst"]

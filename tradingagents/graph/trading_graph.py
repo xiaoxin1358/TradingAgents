@@ -165,6 +165,11 @@ class TradingAgentsGraph:
             if reasoning_effort:
                 kwargs["reasoning_effort"] = reasoning_effort
 
+        elif provider == "deepseek":
+            reasoning_effort = self.config.get("deepseek_reasoning_effort")
+            if reasoning_effort:
+                kwargs["reasoning_effort"] = reasoning_effort
+
         elif provider == "anthropic":
             effort = self.config.get("anthropic_effort")
             if effort:
