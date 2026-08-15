@@ -1,6 +1,6 @@
 # TradingAgents Vue 前端设计文档
 
-> **状态**: 设计文档 | **版本**: v0.2 | **日期**: 2026-08-15
+> **状态**: 设计文档 | **版本**: v0.3 | **日期**: 2026-08-15
 >
 > 关联: [`ARCHITECTURE.md`](../ARCHITECTURE.md)（系统架构）、[`research-report-agents.md`](research-report-agents.md)（研报阅读器）、[`research-report-contradiction.md`](research-report-contradiction.md)（矛盾分析 v3.3）
 
@@ -19,6 +19,7 @@
 9. [状态管理与数据流](#9-状态管理与数据流)
 10. [实施路线图](#10-实施路线图)
 11. [验收标准](#11-验收标准)
+12. [M2 任务中心实现设计](#12-m2-任务中心实现设计)
 
 ---
 
@@ -147,16 +148,22 @@ graph LR
 
 ```css
 :root[data-theme="dark"] {
-  --bg-base: #0b0e14;        /* 页面底色 */
-  --bg-surface: #121722;     /* 卡片 */
-  --bg-elevated: #1a2130;    /* 抽屉/浮层 */
+  --bg-base: #0b0e14; /* 页面底色 */
+  --bg-surface: #121722; /* 卡片 */
+  --bg-elevated: #1a2130; /* 抽屉/浮层 */
   --bg-hover: rgb(79 140 255 / 0.06);
   --border: #232c3d;
-  --text-1: #e6eaf2;  --text-2: #9aa4b8;  --text-3: #5c6678;
-  --accent: #4f8cff;         /* 主色：冷静蓝，只用于交互与强调 */
-  --up: #ef4444; --flat: #8b93a7; --down: #22c55e;  /* A股：红涨绿跌 */
-  --warn: #f59e0b;           /* 需关注信号（如持续天数 ≥ 7） */
-  --radius-sm: 6px; --radius-md: 10px; --radius-lg: 14px;
+  --text-1: #e6eaf2;
+  --text-2: #9aa4b8;
+  --text-3: #5c6678;
+  --accent: #4f8cff; /* 主色：冷静蓝，只用于交互与强调 */
+  --up: #ef4444;
+  --flat: #8b93a7;
+  --down: #22c55e; /* A股：红涨绿跌 */
+  --warn: #f59e0b; /* 需关注信号（如持续天数 ≥ 7） */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
   --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
   --shadow-2: 0 8px 24px rgb(0 0 0 / 0.45);
   --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Consolas, monospace;
@@ -166,13 +173,13 @@ graph LR
 
 #### 5.0.2 色彩语义
 
-| 语义 | 颜色 | 用途 |
-| --- | --- | --- |
-| 看多/上涨 | `--up` 红 | 方向徽章、多头标签 |
-| 看空/下跌 | `--down` 绿 | 方向徽章、空头标签 |
-| 中性 | `--flat` 灰 | 中性方向、禁用态 |
-| 主交互 | `--accent` 蓝 | 选中态、链接、主按钮 |
-| 需关注 | `--warn` 琥珀 | 持续天数 heat、告警 |
+| 语义      | 颜色          | 用途                 |
+| --------- | ------------- | -------------------- |
+| 看多/上涨 | `--up` 红     | 方向徽章、多头标签   |
+| 看空/下跌 | `--down` 绿   | 方向徽章、空头标签   |
+| 中性      | `--flat` 灰   | 中性方向、禁用态     |
+| 主交互    | `--accent` 蓝 | 选中态、链接、主按钮 |
+| 需关注    | `--warn` 琥珀 | 持续天数 heat、告警  |
 
 洞察 `cause_type` 标签色：口径差异=蓝、时间尺度=紫、框架假设=橙、信息时效=青、立场差异=粉、其他=灰。
 
@@ -198,11 +205,11 @@ graph LR
 
 #### 5.0.6 响应式
 
-| 断点 | 布局 |
-| --- | --- |
-| ≥1200px | 侧边导航常驻 + 双栏内容 |
+| 断点       | 布局                                 |
+| ---------- | ------------------------------------ |
+| ≥1200px    | 侧边导航常驻 + 双栏内容              |
 | 768–1200px | 导航折叠为图标栏；矛盾抽屉改全屏浮层 |
-| <768px | 导航入抽屉；表格降级为卡片流 |
+| <768px     | 导航入抽屉；表格降级为卡片流         |
 
 ### 5.1 仪表盘 `/`
 
@@ -481,16 +488,16 @@ webapi/
 
 `MarkdownViewer` 是报告阅读体验的核心，样式集中在一处：
 
-| 元素 | 规范 |
-| --- | --- |
-| 正文容器 | `max-width: 720px` + 居中；阅读区底色与页面分离（浅一点） |
-| 段落/列表 | 行高 1.7，段落间距 0.9em；列表项左 padding 对齐 |
-| 标题 | h1 22px、h2 18px、h3 15px；h2 加顶部 1px 分隔线，层级一目了然 |
-| 表格 | 斑马纹 + 表头 600 字重 + 单元格 13px；数字列等宽右对齐 |
-| 引用块 | 左侧 3px accent 边条 + 弱化底 |
-| 代码块 | 深底 + 等宽 + 语言标签，横向滚动 |
-| `<details>` | 摘要行手型光标 + accent 三角；展开内容缩进 + 淡入 120ms |
-| 徽章语法 | 报告中的 `[看多]` 等文本不自动着色（保留原文），着色只发生在结构化组件内 |
+| 元素        | 规范                                                                     |
+| ----------- | ------------------------------------------------------------------------ |
+| 正文容器    | `max-width: 720px` + 居中；阅读区底色与页面分离（浅一点）                |
+| 段落/列表   | 行高 1.7，段落间距 0.9em；列表项左 padding 对齐                          |
+| 标题        | h1 22px、h2 18px、h3 15px；h2 加顶部 1px 分隔线，层级一目了然            |
+| 表格        | 斑马纹 + 表头 600 字重 + 单元格 13px；数字列等宽右对齐                   |
+| 引用块      | 左侧 3px accent 边条 + 弱化底                                            |
+| 代码块      | 深底 + 等宽 + 语言标签，横向滚动                                         |
+| `<details>` | 摘要行手型光标 + accent 三角；展开内容缩进 + 淡入 120ms                  |
+| 徽章语法    | 报告中的 `[看多]` 等文本不自动着色（保留原文），着色只发生在结构化组件内 |
 
 ---
 
@@ -537,3 +544,164 @@ M1 完成后即可日常使用；M2/M3 为增量。
 | AC-5 | 任务触发   | 页面上启动"研报阅读"，SSE 有输出，结束后报告文件落盘                        |
 | AC-6 | 安全       | `GET /api/trading-runs/../..` 类路径穿越请求一律 400                        |
 | AC-7 | 零回归     | 前端/后端均不 import `tradingagents` 图模块（任务子进程除外），CLI 行为不变 |
+
+---
+
+## 12. M2 任务中心实现设计
+
+> 把三条功能线的运行入口（现在是终端命令）搬进页面：**发起 → 实时日志 → 完成后跳转浏览**。后端仍是"薄壳"——只负责起子进程和转发输出，不 import 图模块。
+
+### 12.1 现状盘点：三个入口的子进程化可行性
+
+| 任务类型 | 入口 | 非交互？ | M2 前置工作 |
+| --- | --- | --- | --- |
+| 研报阅读 | `run_report_reader.py --date YYYY-MM-DD [--root ...]` | ✅ argparse | 无 |
+| 板块轮动 | `run_pre_analyst.py --ticker X [--date] [--provider/--model/--base-url]` | ✅ argparse | 无 |
+| 交易分析 | `cli analyze` | ❌ Rich 交互式选择（provider/标的/分析师/深度…） | **12.4.1 前置小改** |
+
+### 12.2 任务模型与状态机
+
+```mermaid
+stateDiagram-v2
+    [*] --> running: POST /api/jobs
+    running --> done: 子进程退出码 0
+    running --> failed: 退出码非 0
+    running --> cancelled: （可选）显式 kill
+    done --> [*]
+    failed --> [*]
+    cancelled --> [*]
+```
+
+- **Job 记录**（`~/.tradingagents/jobs.json`，JSON 行数组，M2 不引数据库）：
+
+```json
+{"id": "8f3c1e", "type": "daily", "params": {"date": "2026-08-13"},
+ "status": "done", "created_at": 1755230400, "finished_at": 1755231000,
+ "exit_code": 0, "log_file": "jobs/8f3c1e.log"}
+```
+
+- **日志**：每个任务一个文件 `~/.tradingagents/jobs/{id}.log`；后端按行追加，SSE 只推新行，不进内存长留（`ponytail:` 日志内存环形缓冲 500 行，回看完整日志读文件）
+- **id**：6 位 base62 随机（够单用户区分），不是 UUID 全量
+- **并发**：全局单任务锁（模块级 `threading.Lock`）。`ponytail:` 单用户够用；多用户时改为每用户 1 任务 + 队列
+
+### 12.3 后端实现（`webapi/jobs.py` + main.py 路由）
+
+```python
+# jobs.py 核心骨架
+class JobManager:
+    def __init__(self, base_dir: Path):  # ~/.tradingagents/
+        self.lock = threading.Lock()      # 单任务锁
+        self.jobs: dict[str, Job] = {}
+
+    def start(self, job_type: str, params: dict) -> Job:
+        # 1. 校验 type/params（见 12.5）
+        # 2. 锁内检查无 running 任务，创建 Job（running）
+        # 3. Popen(cmd, cwd=项目根, shell=False, env={**os.environ, PYTHONIOENCODING="utf-8"})
+        # 4. 启动 reader 线程：逐行读 stdout → 追加 log 文件 → 推广播队列
+        # 5. 进程结束后更新 status/exit_code/finished_at → 写 jobs.json
+
+    def events(self, job_id: str) -> Iterator[str]:
+        # SSE 格式: event: log / data: {"line": "..."}
+        # 历史行从 log 文件回放，新行从广播队列订阅；status 变更也推
+```
+
+要点：
+
+1. **命令映射**（白名单，全部 `shell=False` 列表参数，防注入）：
+
+   | type | 命令 |
+   | --- | --- |
+   | `daily` | `[sys.executable, "run_report_reader.py", "--date", date]`（可选 `--root`） |
+   | `pre` | `[sys.executable, "run_pre_analyst.py", "--ticker", ticker]`（可选 `--date`） |
+   | `trading` | 见 12.4.1，非交互参数化后的 `cli analyze` |
+
+2. **子进程环境**：`PYTHONIOENCODING=utf-8` + 继承后端环境（`.env` 已加载、conda 环境一致）；`cwd = 项目根`
+3. **SSE**：FastAPI `StreamingResponse`，`Content-Type: text/event-stream`；`event: status` 与 `event: log` 两类
+4. **前端断线重连**：EventSource 自动重连；重连后接口回放 `log_file` 全文（简单可靠，不做增量游标）
+
+### 12.4.1 前置小改：`cli analyze` 非交互化（约 30 行）
+
+`cli/main.py` 现有 `run_analysis(checkpoint)` 内部是一串 Rich 交互提示（provider、标的、分析师勾选、深度、语言）。给 `analyze` 增加可选参数，**有参数就跳过交互**：
+
+```python
+@app.command()
+def analyze(
+    checkpoint: bool | None = None,
+    clear_checkpoints: bool = False,
+    ticker: str | None = typer.Option(None, "--ticker"),
+    trade_date: str | None = typer.Option(None, "--date"),
+    analysts: str | None = typer.Option(None, "--analysts", help="逗号分隔: market,social,news,fundamentals"),
+):
+    # ticker/trade_date/analysts 非空时跳过对应 Prompt.ask 分支
+```
+
+- 不改动零参数交互行为（AC-7：CLI 行为不变）
+- 其余选项（provider/模型/深度）走 `TRADINGAGENTS_*` env，后端不动
+- 交易分析任务在参数化合并后再在任务中心开放；M2 首版先开放 daily + pre
+
+### 12.5 API 扩展（对齐 6.3）
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| POST | `/api/jobs` | body `{type, params}`；校验失败 422；有任务在跑 409 |
+| GET | `/api/jobs` | 历史任务（时间倒序，含状态/耗时） |
+| GET | `/api/jobs/{id}` | 单任务 + `log_tail`（最后 500 行） |
+| GET | `/api/jobs/{id}/events` | SSE：日志行 + 状态变更 |
+| POST | `/api/jobs/{id}/cancel` | （可选）kill 子进程 → `cancelled` |
+
+参数校验（白名单，注入的最后一道防线）：
+
+- `type ∈ {daily, pre, trading}`
+- `date`：`^\d{4}-\d{2}-\d{2}$` 且为合法日期
+- `ticker`：`^[A-Za-z0-9._-]{1,20}$`（与 CLI 的 ticker 硬化一致）
+- `root`（daily 可选）：后端只允许 `D:\WORKS\...` 这类已配置白名单前缀，默认不暴露
+
+### 12.6 前端实现
+
+**新增/改动文件**：
+
+```
+frontend/src/
+├── api/jobs.ts             # createJob / fetchJobs / fetchJob / cancelJob
+│                           # subscribeJobEvents(id, onEvent): EventSource
+├── stores/jobs.ts          # jobs 列表 + runningJob + logLines + subscribe
+└── views/JobsView.vue      # 占位页替换为正式实现
+```
+
+**JobsView 结构**（视觉沿用 5.5 设计）：
+
+1. **新建任务**：radio 卡片三选一（图标 + 一句描述，选中 accent 描边）；表单随类型联动——
+   - daily：日期（默认今天）、可选数据根目录
+   - pre：标的（默认 SPY）、日期
+   - trading：置灰 + "即将开放"角标（等 CLI 参数化合并）
+2. **运行中面板**：阶段徽章（脉冲）+ 终端式日志面板（深底、等宽、绿色时间戳、自动滚动到底；**过滤 ANSI 转义序列**——CLI 的 Rich 输出含颜色码）；右上角"取消"按钮（可选）
+3. **历史任务表**：类型图标 | 参数摘要（等宽）| 开始/结束 | 耗时 | 状态徽章（成功绿/失败红/取消灰）；行点击展开日志尾部
+4. **联动**：
+   - App.vue 顶栏状态点：空闲=绿"API 在线"，有任务=蓝脉冲"任务运行中 · {type}"
+   - 任务 `done` 后弹提示条："研报阅读 2026-08-13 完成 → 去浏览"（路由到 `/reports/daily`）
+
+**SSE 订阅要点**：
+
+- 组件挂载时若存在 running 任务则自动订阅其 events
+- `onBeforeUnmount` 关闭 EventSource（文档 9 已有约定）
+- 日志行只 `push` 进 `logLines` 数组，超过 500 行 shift（内存有界）
+
+### 12.7 测试与自检（不引测试框架）
+
+| 层 | 验证 |
+| --- | --- |
+| 单元（JobManager） | ① 参数校验拒绝非法 date/ticker ② 状态机：完成后 status=done、jobs.json 落盘 ③ 单任务锁：running 期间再 start 抛 409 ④ 日志文件写入。用 `sys.executable -c "print(...)"` 替身命令，**不真跑图** |
+| 集成（手工） | 页面上发起"研报阅读 2026-08-13"→ SSE 日志滚动 → 完成后 `reports/2026-08-13/` 产物刷新、矛盾库新增记录、仪表盘 Top5 变化 |
+| 回归 | M1 的 14 个测试 + webapi 3 个测试保持绿 |
+
+### 12.8 与 M1 的边界
+
+- M1 只读原则不变：**只有 jobs 模块会起子进程**，其余端点仍是纯只读
+- 后端启动方式不变（`uvicorn webapi.main:app`）；任务进程与 API 进程同环境
+- `docs/research-report-contradiction.md` 与图代码零改动
+
+### 12.9 验收（对应 AC-5）
+
+- 页面发起 daily 任务 → 日志面板逐行滚动 → 状态变"成功" → 点击提示条直达 `/reports/daily` 且新日期出现在列表
+- 两个任务同时提交 → 第二个返回 409"已有任务在运行"
+- 非法参数（date=`../../etc`、ticker=`A;B`）一律 422，且不会产生子进程
