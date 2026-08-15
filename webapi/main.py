@@ -10,12 +10,15 @@ package or any LLM client. M2 job control lives in a later milestone.
 from __future__ import annotations
 
 import os
+from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import Body, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 
 from . import contradictions as ctr
+from . import jobs as jobs_mod
 from . import reports as rpt
 from . import settings as stg
 
@@ -23,7 +26,14 @@ _ROOT = Path(__file__).resolve().parent.parent
 _REPORTS_DIR = Path(os.environ.get("TRADINGAGENTS_REPORTS_DIR", _ROOT / "reports"))
 _DB_PATH = _REPORTS_DIR / "contradictions.db"
 
-app = FastAPI(title="TradingAgents Web API", version="0.1.0")
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    yield
+    jobs.shutdown()  # kill running child on backend exit (docs 12.3)
+
+
+app = FastAPI(title="TradingAgents Web API", version="0.2.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -37,6 +47,7 @@ app.add_middleware(
 )
 
 root = rpt.ReportsRoot(_REPORTS_DIR)
+jobs = jobs_mod.JobManager()
 
 
 # ── overview / dashboard ──────────────────────────────────────────────
@@ -161,6 +172,52 @@ def contradiction_detail(cid: str):
 @app.get("/api/memory")
 def memory():
     return stg.get_memory(_ROOT)
+
+
+# ── jobs (M2, docs 12) ───────────────────────────────────────────────
+
+@app.post("/api/jobs", status_code=201)
+def create_job(payload: dict = Body(...)):
+    job_type = payload.get("type")
+    params = payload.get("params") or {}
+    if not isinstance(job_type, str) or not isinstance(params, dict):
+        raise HTTPException(422, "body 应为 {type, params}")
+    try:
+        return jobs.start(job_type, params)
+    except jobs_mod.JobError as exc:
+        raise HTTPException(exc.status, str(exc))
+
+
+@app.get("/api/jobs")
+def list_jobs():
+    return {"jobs": jobs.list()}
+
+
+@app.get("/api/jobs/{job_id}")
+def get_job(job_id: str):
+    job = jobs.get(job_id)
+    if job is None:
+        raise HTTPException(404, "job not found")
+    return {**job, "log_tail": jobs.log_tail(job_id)}
+
+
+@app.post("/api/jobs/{job_id}/cancel")
+def cancel_job(job_id: str):
+    job = jobs.cancel(job_id)
+    if job is None:
+        raise HTTPException(404, "job not found")
+    return job
+
+
+@app.get("/api/jobs/{job_id}/events")
+async def job_events(job_id: str):
+    if jobs.get(job_id) is None:
+        raise HTTPException(404, "job not found")
+    return StreamingResponse(
+        jobs.events(job_id),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @app.get("/api/settings")

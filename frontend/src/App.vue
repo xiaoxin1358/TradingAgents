@@ -1,9 +1,20 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onMounted } from "vue";
 import { useRoute } from "vue-router";
+import { useJobsStore } from "./stores/jobs";
 
 const route = useRoute();
 const title = computed(() => String(route.meta.title ?? "TradingAgents"));
+const jobs = useJobsStore();
+
+onMounted(async () => {
+  try {
+    await jobs.load();
+    if (jobs.running) jobs.subscribe(jobs.running.id); // 顶栏状态随任务实时更新
+  } catch {
+    /* 后端未启动时保持静态 */
+  }
+});
 
 const nav = [
   { to: "/", label: "仪表盘", icon: "◫" },
@@ -46,8 +57,14 @@ const nav = [
       <header class="topbar">
         <h1 class="topbar-title">{{ title }}</h1>
         <div class="topbar-right">
-          <span class="dot done"></span>
-          <span class="mono topbar-status">API 在线</span>
+          <template v-if="jobs.running">
+            <span class="dot running"></span>
+            <span class="mono topbar-status">任务运行中 · {{ jobs.running.type }}</span>
+          </template>
+          <template v-else>
+            <span class="dot done"></span>
+            <span class="mono topbar-status">API 在线</span>
+          </template>
         </div>
       </header>
       <div class="content">

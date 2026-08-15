@@ -109,3 +109,27 @@ export interface FileContent {
   path?: string;
   content: string;
 }
+
+// ── jobs (M2) ──
+
+export type JobType = "daily" | "pre" | "trading";
+export type JobStatus = "running" | "done" | "failed" | "cancelled" | "interrupted";
+
+export interface Job {
+  id: string;
+  type: JobType;
+  params: Record<string, string>;
+  status: JobStatus;
+  pid?: number | null;
+  created_at: number;
+  finished_at?: number | null;
+  exit_code?: number | null;
+  log_file: string;
+  log_tail?: string[];
+}
+
+export interface JobEvent {
+  line?: string;
+  status?: string;
+  error?: string;
+}
