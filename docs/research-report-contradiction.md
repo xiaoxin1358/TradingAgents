@@ -1,6 +1,6 @@
 # 研报矛盾信号分析功能文档
 
-> **状态**: 功能文档 | **版本**: v2.0 | **日期**: 2026-08-13
+> **状态**: 功能文档 | **版本**: v3.3 | **日期**: 2026-08-15
 >
 > 关联: [`research-report-agents.md`](research-report-agents.md)（现有 v2.0 架构）、[`research-report-brainstorm.md`](research-report-brainstorm.md)（差异化弯子）、[`research-report-contradiction-insight.md`](research-report-contradiction-insight.md)（矛盾洞察 FR-7）
 
