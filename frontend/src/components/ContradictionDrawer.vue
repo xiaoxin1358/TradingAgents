@@ -25,20 +25,46 @@ function text(d: string | undefined | null): string {
       </header>
 
       <div class="vs">
-        <div class="claim" :class="row.direction_a === '看多' ? 'side-up' : row.direction_a === '看空' ? 'side-down' : ''">
+        <div
+          class="claim"
+          :class="
+            row.direction_a === '看多'
+              ? 'side-up'
+              : row.direction_a === '看空'
+                ? 'side-down'
+                : ''
+          "
+        >
           <div class="claim-head">
-            <span class="mono claim-broker">{{ text(row.claim_a.broker) }}</span>
+            <span class="mono claim-broker">{{
+              text(row.claim_a.broker)
+            }}</span>
             <DirectionBadge :direction="row.direction_a" />
           </div>
-          <blockquote class="claim-quote">{{ text(row.claim_a.quote) }}</blockquote>
+          <blockquote class="claim-quote">
+            {{ text(row.claim_a.quote) }}
+          </blockquote>
         </div>
         <div class="vs-mark mono">VS</div>
-        <div class="claim" :class="row.direction_b === '看多' ? 'side-up' : row.direction_b === '看空' ? 'side-down' : ''">
+        <div
+          class="claim"
+          :class="
+            row.direction_b === '看多'
+              ? 'side-up'
+              : row.direction_b === '看空'
+                ? 'side-down'
+                : ''
+          "
+        >
           <div class="claim-head">
-            <span class="mono claim-broker">{{ text(row.claim_b.broker) }}</span>
+            <span class="mono claim-broker">{{
+              text(row.claim_b.broker)
+            }}</span>
             <DirectionBadge :direction="row.direction_b" />
           </div>
-          <blockquote class="claim-quote">{{ text(row.claim_b.quote) }}</blockquote>
+          <blockquote class="claim-quote">
+            {{ text(row.claim_b.quote) }}
+          </blockquote>
         </div>
       </div>
 
@@ -49,10 +75,22 @@ function text(d: string | undefined | null): string {
             {{ text(row.insight?.cause_type) }}
           </span>
         </h3>
-        <div class="kv"><span>成因</span><p>{{ text(row.insight?.cause) }}</p></div>
-        <div class="kv"><span>点评</span><p>{{ text(row.insight?.analysis) }}</p></div>
-        <div class="kv"><span>验证</span><p>{{ text(row.insight?.watch) }}</p></div>
-        <div class="kv"><span>倾向</span><p>{{ text(row.insight?.tilt) }}</p></div>
+        <div class="kv">
+          <span>成因</span>
+          <p>{{ text(row.insight?.cause) }}</p>
+        </div>
+        <div class="kv">
+          <span>点评</span>
+          <p>{{ text(row.insight?.analysis) }}</p>
+        </div>
+        <div class="kv">
+          <span>验证</span>
+          <p>{{ text(row.insight?.watch) }}</p>
+        </div>
+        <div class="kv">
+          <span>倾向</span>
+          <p>{{ text(row.insight?.tilt) }}</p>
+        </div>
       </section>
 
       <section class="life">
@@ -70,8 +108,13 @@ function text(d: string | undefined | null): string {
           <span>最近 {{ row.last_seen }}</span>
         </div>
         <p class="life-state">
-          状态：<span class="badge accent">{{ row.status === "open" ? "未决" : "已解决" }}</span>
-          <span v-if="row.winner" class="mono"> · 胜方 {{ row.winner }} · {{ row.resolved_by }} · {{ row.resolved_date }}</span>
+          状态：<span class="badge accent">{{
+            row.status === "open" ? "未决" : "已解决"
+          }}</span>
+          <span v-if="row.winner" class="mono">
+            · 胜方 {{ row.winner }} · {{ row.resolved_by }} ·
+            {{ row.resolved_date }}</span
+          >
         </p>
       </section>
     </aside>
@@ -99,8 +142,14 @@ function text(d: string | undefined | null): string {
 }
 
 @keyframes slideIn {
-  from { transform: translateX(30px); opacity: 0; }
-  to { transform: none; opacity: 1; }
+  from {
+    transform: translateX(30px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
 }
 
 .drawer-head {
@@ -132,8 +181,12 @@ function text(d: string | undefined | null): string {
   gap: 8px;
 }
 
-.claim.side-up { border-left: 3px solid var(--up); }
-.claim.side-down { border-left: 3px solid var(--down); }
+.claim.side-up {
+  border-left: 3px solid var(--up);
+}
+.claim.side-down {
+  border-left: 3px solid var(--down);
+}
 
 .claim-head {
   display: flex;

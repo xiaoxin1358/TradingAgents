@@ -6,7 +6,8 @@
 <template>
   <div class="empty">
     <div class="icon">🚧</div>
-    任务中心属于 M2 阶段——完成后可在页面上发起 交易分析 / 研报阅读 / 板块轮动 并实时查看进度
+    任务中心属于 M2 阶段——完成后可在页面上发起 交易分析 / 研报阅读 / 板块轮动
+    并实时查看进度
     <div style="margin-top: 14px">
       <RouterLink to="/reports/daily" class="btn">先浏览已有报告</RouterLink>
     </div>

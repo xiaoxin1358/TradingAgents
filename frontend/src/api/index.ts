@@ -27,15 +27,20 @@ export const fetchDailyFile = (day: string, name: string) =>
 
 // ── run trees ──
 
-export const fetchTradingRuns = () => get<{ runs: RunInfo[] }>("/api/trading-runs");
+export const fetchTradingRuns = () =>
+  get<{ runs: RunInfo[] }>("/api/trading-runs");
 
 export const fetchTradingFile = (run: string, path: string) =>
-  get<FileContent>(`/api/trading-runs/${enc(run)}/${path.split("/").map(enc).join("/")}`);
+  get<FileContent>(
+    `/api/trading-runs/${enc(run)}/${path.split("/").map(enc).join("/")}`,
+  );
 
 export const fetchPreRuns = () => get<{ runs: RunInfo[] }>("/api/pre-runs");
 
 export const fetchPreFile = (run: string, path: string) =>
-  get<FileContent>(`/api/pre-runs/${enc(run)}/${path.split("/").map(enc).join("/")}`);
+  get<FileContent>(
+    `/api/pre-runs/${enc(run)}/${path.split("/").map(enc).join("/")}`,
+  );
 
 // ── contradictions ──
 

@@ -11,10 +11,14 @@ const content = ref("");
 const loading = ref(false);
 const error = ref("");
 
-const currentRun = computed(() => runs.value.find((r) => r.id === activeRun.value));
+const currentRun = computed(() =>
+  runs.value.find((r) => r.id === activeRun.value),
+);
 
 const tabs = computed(() =>
-  currentRun.value ? currentRun.value.files.map((f) => f.split("/").pop() ?? f) : [],
+  currentRun.value
+    ? currentRun.value.files.map((f) => f.split("/").pop() ?? f)
+    : [],
 );
 
 async function openFile(name: string) {
@@ -150,7 +154,9 @@ onMounted(async () => {
   padding: 6px 12px;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: color 140ms ease-out, background 140ms ease-out;
+  transition:
+    color 140ms ease-out,
+    background 140ms ease-out;
 }
 
 .tab:hover {

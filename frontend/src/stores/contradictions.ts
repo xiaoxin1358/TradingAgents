@@ -30,7 +30,10 @@ export const useContradictionStore = defineStore("contradictions", {
         this.loading = false;
       }
     },
-    setFilter(key: keyof ContradictionFilters, value: string | number | null | undefined) {
+    setFilter(
+      key: keyof ContradictionFilters,
+      value: string | number | null | undefined,
+    ) {
       (this.filters as Record<string, unknown>)[key] = value;
     },
     async openDetail(id: string) {

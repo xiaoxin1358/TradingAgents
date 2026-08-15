@@ -30,7 +30,8 @@ async function copy(value: string, key: string) {
 <template>
   <div>
     <div class="card notice">
-      ⚠ <b>配置为只读。</b> 修改请编辑项目根目录 <code class="mono">.env</code> 后重启任务。
+      ⚠ <b>配置为只读。</b> 修改请编辑项目根目录
+      <code class="mono">.env</code> 后重启任务。
     </div>
 
     <div v-if="error" class="empty">{{ error }}</div>
@@ -39,8 +40,14 @@ async function copy(value: string, key: string) {
       <h3 class="card-title">{{ g.label }}</h3>
       <div v-for="item in g.items" :key="item.key" class="row">
         <span class="key mono">{{ item.key }}</span>
-        <span class="value mono" :class="{ blank: !item.value }">{{ item.value || "（未设置）" }}</span>
-        <button v-if="item.value" class="btn" @click="copy(item.value, item.key)">
+        <span class="value mono" :class="{ blank: !item.value }">{{
+          item.value || "（未设置）"
+        }}</span>
+        <button
+          v-if="item.value"
+          class="btn"
+          @click="copy(item.value, item.key)"
+        >
           {{ copied === item.key ? "已复制 ✓" : "复制" }}
         </button>
       </div>

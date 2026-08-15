@@ -94,7 +94,9 @@ a {
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-1);
   padding: 16px;
-  transition: transform 140ms ease-out, box-shadow 140ms ease-out;
+  transition:
+    transform 140ms ease-out,
+    box-shadow 140ms ease-out;
 }
 
 .card.hoverable:hover {
@@ -122,7 +124,9 @@ a {
   color: var(--text-1);
   font-size: 13px;
   cursor: pointer;
-  transition: background 140ms ease-out, border-color 140ms ease-out;
+  transition:
+    background 140ms ease-out,
+    border-color 140ms ease-out;
 }
 
 .btn:hover {
@@ -191,13 +195,34 @@ a {
   line-height: 1.8;
 }
 
-.tag.口径差异 { background: rgb(79 140 255 / 0.12); color: var(--accent); }
-.tag.时间尺度 { background: rgb(167 139 250 / 0.14); color: #a78bfa; }
-.tag.框架假设 { background: rgb(251 146 60 / 0.14); color: #fb923c; }
-.tag.信息时效 { background: rgb(34 211 238 / 0.14); color: #22d3ee; }
-.tag.立场差异 { background: rgb(244 114 182 / 0.14); color: #f472b6; }
-.tag.未生成 { background: rgb(139 147 167 / 0.14); color: var(--flat); }
-.tag.其他 { background: rgb(139 147 167 / 0.14); color: var(--flat); }
+.tag.口径差异 {
+  background: rgb(79 140 255 / 0.12);
+  color: var(--accent);
+}
+.tag.时间尺度 {
+  background: rgb(167 139 250 / 0.14);
+  color: #a78bfa;
+}
+.tag.框架假设 {
+  background: rgb(251 146 60 / 0.14);
+  color: #fb923c;
+}
+.tag.信息时效 {
+  background: rgb(34 211 238 / 0.14);
+  color: #22d3ee;
+}
+.tag.立场差异 {
+  background: rgb(244 114 182 / 0.14);
+  color: #f472b6;
+}
+.tag.未生成 {
+  background: rgb(139 147 167 / 0.14);
+  color: var(--flat);
+}
+.tag.其他 {
+  background: rgb(139 147 167 / 0.14);
+  color: var(--flat);
+}
 
 /* ── tables ── */
 
@@ -300,7 +325,12 @@ a {
 
 .skeleton {
   border-radius: var(--radius-sm);
-  background: linear-gradient(90deg, var(--bg-elevated) 25%, var(--border) 50%, var(--bg-elevated) 75%);
+  background: linear-gradient(
+    90deg,
+    var(--bg-elevated) 25%,
+    var(--border) 50%,
+    var(--bg-elevated) 75%
+  );
   background-size: 200% 100%;
   animation: shimmer 1.4s infinite;
 }
@@ -317,7 +347,9 @@ a {
 /* ── page fade ── */
 
 .page-enter-active {
-  transition: opacity 240ms ease-out, transform 240ms ease-out;
+  transition:
+    opacity 240ms ease-out,
+    transform 240ms ease-out;
 }
 
 .page-enter-from {

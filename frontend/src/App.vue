@@ -120,7 +120,9 @@ const nav = [
   border-radius: var(--radius-sm);
   color: var(--text-2);
   font-size: 13px;
-  transition: background 140ms ease-out, color 140ms ease-out;
+  transition:
+    background 140ms ease-out,
+    color 140ms ease-out;
   border-left: 2px solid transparent;
 }
 

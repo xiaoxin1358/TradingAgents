@@ -41,15 +41,29 @@ function dayHeat(days: number | null): string {
   <template v-else-if="data">
     <div class="page-head">
       <div>
-        <h2 class="hello">研报智研 · {{ today.getFullYear() }}-{{ String(today.getMonth() + 1).padStart(2, "0") }}-{{ String(today.getDate()).padStart(2, "0") }} 星期{{ weekdays[today.getDay()] }}</h2>
+        <h2 class="hello">
+          研报智研 · {{ today.getFullYear() }}-{{
+            String(today.getMonth() + 1).padStart(2, "0")
+          }}-{{ String(today.getDate()).padStart(2, "0") }} 星期{{
+            weekdays[today.getDay()]
+          }}
+        </h2>
       </div>
       <RouterLink to="/jobs" class="btn primary">✨ 新建任务</RouterLink>
     </div>
 
     <div class="grid stats-grid">
       <StatsCard icon="📄" label="报告天数" :value="data.stats.daily_days" />
-      <StatsCard icon="⚔" label="矛盾总数" :value="data.stats.contradictions.total" />
-      <StatsCard icon="⏳" label="未决矛盾" :value="data.stats.contradictions.open" />
+      <StatsCard
+        icon="⚔"
+        label="矛盾总数"
+        :value="data.stats.contradictions.total"
+      />
+      <StatsCard
+        icon="⏳"
+        label="未决矛盾"
+        :value="data.stats.contradictions.open"
+      />
       <StatsCard
         icon="✅"
         label="解决率"
@@ -78,13 +92,21 @@ function dayHeat(days: number | null): string {
         >
           <div class="top-main">
             <div class="top-subject">{{ t.subject }}</div>
-            <div class="top-brokers mono">{{ t.broker_a }} vs {{ t.broker_b }}</div>
+            <div class="top-brokers mono">
+              {{ t.broker_a }} vs {{ t.broker_b }}
+            </div>
           </div>
           <div class="top-right">
             <DirectionBadge :direction="t.direction_a" />
             <DirectionBadge :direction="t.direction_b" />
             <span class="badge" :class="dayHeat(t.days_open)">
-              {{ t.days_open === null ? "?" : t.days_open === 0 ? "今日" : t.days_open + " 天" }}
+              {{
+                t.days_open === null
+                  ? "?"
+                  : t.days_open === 0
+                    ? "今日"
+                    : t.days_open + " 天"
+              }}
             </span>
           </div>
         </div>

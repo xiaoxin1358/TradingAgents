@@ -13,7 +13,14 @@ const statusChips = [
   { value: "resolved", label: "已解决" },
 ];
 
-const causeOptions = ["口径差异", "时间尺度", "框架假设", "信息时效", "立场差异", "其他"];
+const causeOptions = [
+  "口径差异",
+  "时间尺度",
+  "框架假设",
+  "信息时效",
+  "立场差异",
+  "其他",
+];
 
 function dayHeat(days: number | null): string {
   if (days === null) return "flat";
@@ -22,7 +29,9 @@ function dayHeat(days: number | null): string {
   return "flat";
 }
 
-async function applyFilter(patch: Record<string, string | number | null | undefined>) {
+async function applyFilter(
+  patch: Record<string, string | number | null | undefined>,
+) {
   for (const [k, v] of Object.entries(patch)) store.setFilter(k as never, v);
   error.value = "";
   try {
@@ -63,13 +72,27 @@ onMounted(async () => {
         </button>
       </div>
 
-      <select class="select" @change="applyFilter({ kind: ($event.target as HTMLSelectElement).value || undefined })">
+      <select
+        class="select"
+        @change="
+          applyFilter({
+            kind: ($event.target as HTMLSelectElement).value || undefined,
+          })
+        "
+      >
         <option value="">全部类型</option>
         <option value="opinion">观点</option>
         <option value="factual">事实</option>
       </select>
 
-      <select class="select" @change="applyFilter({ cause_type: ($event.target as HTMLSelectElement).value || undefined })">
+      <select
+        class="select"
+        @change="
+          applyFilter({
+            cause_type: ($event.target as HTMLSelectElement).value || undefined,
+          })
+        "
+      >
         <option value="">全部归因</option>
         <option v-for="c in causeOptions" :key="c" :value="c">{{ c }}</option>
       </select>
@@ -77,10 +100,23 @@ onMounted(async () => {
       <input
         class="input"
         placeholder="🔍 对象搜索"
-        @keyup.enter="applyFilter({ subject: ($event.target as HTMLInputElement).value || undefined })"
+        @keyup.enter="
+          applyFilter({
+            subject: ($event.target as HTMLInputElement).value || undefined,
+          })
+        "
       />
 
-      <select class="select" @change="applyFilter({ min_days: ($event.target as HTMLSelectElement).value ? Number(($event.target as HTMLSelectElement).value) : undefined })">
+      <select
+        class="select"
+        @change="
+          applyFilter({
+            min_days: ($event.target as HTMLSelectElement).value
+              ? Number(($event.target as HTMLSelectElement).value)
+              : undefined,
+          })
+        "
+      >
         <option value="">持续天数不限</option>
         <option value="1">≥ 1 天</option>
         <option value="3">≥ 3 天</option>
@@ -106,9 +142,15 @@ onMounted(async () => {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="r in store.rows" :key="r.id" @click="store.openDetail(r.id)">
+          <tr
+            v-for="r in store.rows"
+            :key="r.id"
+            @click="store.openDetail(r.id)"
+          >
             <td class="subject">{{ r.subject }}</td>
-            <td class="mono muted">{{ r.kind_cn }}/{{ r.scope_cn }}/{{ r.scale_cn }}</td>
+            <td class="mono muted">
+              {{ r.kind_cn }}/{{ r.scope_cn }}/{{ r.scale_cn }}
+            </td>
             <td>
               <DirectionBadge :direction="r.direction_a" />
               <span class="mono broker">{{ r.claim_a.broker ?? "?" }}</span>
@@ -119,7 +161,13 @@ onMounted(async () => {
             </td>
             <td>
               <span class="badge" :class="dayHeat(r.days_open)">
-                {{ r.days_open === null ? "?" : r.days_open === 0 ? "今日" : r.days_open + " 天" }}
+                {{
+                  r.days_open === null
+                    ? "?"
+                    : r.days_open === 0
+                      ? "今日"
+                      : r.days_open + " 天"
+                }}
               </span>
             </td>
             <td>
@@ -140,7 +188,11 @@ onMounted(async () => {
       </div>
     </div>
 
-    <ContradictionDrawer v-if="store.selected" :row="store.selected" @close="store.closeDetail()" />
+    <ContradictionDrawer
+      v-if="store.selected"
+      :row="store.selected"
+      @close="store.closeDetail()"
+    />
   </div>
 </template>
 
@@ -167,7 +219,10 @@ onMounted(async () => {
   font-size: 12.5px;
   padding: 4px 13px;
   cursor: pointer;
-  transition: color 140ms ease-out, border-color 140ms ease-out, background 140ms ease-out;
+  transition:
+    color 140ms ease-out,
+    border-color 140ms ease-out,
+    background 140ms ease-out;
 }
 
 .chip:hover {

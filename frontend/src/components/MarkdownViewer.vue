@@ -22,17 +22,30 @@ const html = computed(() => md.render(props.content));
   font-size: 14px;
 }
 
-.md :deep(h1) { font-size: 22px; margin: 8px 0 14px; }
+.md :deep(h1) {
+  font-size: 22px;
+  margin: 8px 0 14px;
+}
 .md :deep(h2) {
   font-size: 18px;
   margin: 26px 0 12px;
   padding-top: 18px;
   border-top: 1px solid var(--border);
 }
-.md :deep(h3) { font-size: 15px; margin: 20px 0 8px; }
-.md :deep(p) { margin: 0.9em 0; }
-.md :deep(ul), .md :deep(ol) { padding-left: 1.4em; }
-.md :deep(li) { margin: 3px 0; }
+.md :deep(h3) {
+  font-size: 15px;
+  margin: 20px 0 8px;
+}
+.md :deep(p) {
+  margin: 0.9em 0;
+}
+.md :deep(ul),
+.md :deep(ol) {
+  padding-left: 1.4em;
+}
+.md :deep(li) {
+  margin: 3px 0;
+}
 
 .md :deep(table) {
   width: 100%;
@@ -105,7 +118,11 @@ const html = computed(() => md.render(props.content));
 }
 
 @keyframes fadeIn {
-  from { opacity: 0.4; }
-  to { opacity: 1; }
+  from {
+    opacity: 0.4;
+  }
+  to {
+    opacity: 1;
+  }
 }
 </style>

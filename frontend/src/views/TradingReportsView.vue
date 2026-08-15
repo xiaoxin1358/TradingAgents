@@ -19,7 +19,9 @@ const stages = [
   { key: "5_portfolio", label: "决策", icon: "🎯" },
 ];
 
-const currentRun = computed(() => runs.value.find((r) => r.id === activeRun.value));
+const currentRun = computed(() =>
+  runs.value.find((r) => r.id === activeRun.value),
+);
 
 const tabs = computed(() => {
   const r = currentRun.value;
@@ -28,7 +30,9 @@ const tabs = computed(() => {
 });
 
 function stageFiles(stageKey: string): string[] {
-  return currentRun.value?.files.filter((f) => f.startsWith(stageKey + "/")) ?? [];
+  return (
+    currentRun.value?.files.filter((f) => f.startsWith(stageKey + "/")) ?? []
+  );
 }
 
 function stageState(stageKey: string): "done" | "empty" {
@@ -243,7 +247,9 @@ onMounted(async () => {
   padding: 6px 12px;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: color 140ms ease-out, background 140ms ease-out;
+  transition:
+    color 140ms ease-out,
+    background 140ms ease-out;
 }
 
 .tab:hover {

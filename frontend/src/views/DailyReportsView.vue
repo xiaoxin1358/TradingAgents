@@ -66,11 +66,19 @@ function shift(delta: number) {
       <select v-model="activeDate" class="select mono">
         <option v-for="d in dates" :key="d" :value="d">{{ d }}</option>
       </select>
-      <button class="btn" :disabled="!dates.length" @click="shift(-1)">▶</button>
-      <button class="btn" :disabled="!dates.length || dates[0] === activeDate" @click="activeDate = dates[0]">
+      <button class="btn" :disabled="!dates.length" @click="shift(-1)">
+        ▶
+      </button>
+      <button
+        class="btn"
+        :disabled="!dates.length || dates[0] === activeDate"
+        @click="activeDate = dates[0]"
+      >
         回到最新
       </button>
-      <span class="mono count">{{ meta ? meta.files.filter((f) => f.exists).length : 0 }}/7</span>
+      <span class="mono count"
+        >{{ meta ? meta.files.filter((f) => f.exists).length : 0 }}/7</span
+      >
     </div>
 
     <div class="card reader-card">
@@ -133,7 +141,9 @@ function shift(delta: number) {
   padding: 6px 12px;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: color 140ms ease-out, background 140ms ease-out;
+  transition:
+    color 140ms ease-out,
+    background 140ms ease-out;
 }
 
 .tab:hover:not(.disabled) {
