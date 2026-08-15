@@ -1,0 +1,335 @@
+/* TradingAgents Web UI — design system (docs/vue-frontend.md 5.0).
+ * Dark fintech terminal × modern SaaS. Red=up, green=down (A-share habit). */
+
+:root,
+:root[data-theme="dark"] {
+  --bg-base: #0b0e14;
+  --bg-surface: #121722;
+  --bg-elevated: #1a2130;
+  --bg-hover: rgb(79 140 255 / 0.06);
+  --border: #232c3d;
+  --text-1: #e6eaf2;
+  --text-2: #9aa4b8;
+  --text-3: #5c6678;
+  --accent: #4f8cff;
+  --up: #ef4444;
+  --flat: #8b93a7;
+  --down: #22c55e;
+  --warn: #f59e0b;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-2: 0 8px 24px rgb(0 0 0 / 0.45);
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Consolas, monospace;
+  --font-sans: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+}
+
+:root[data-theme="light"] {
+  --bg-base: #f5f7fa;
+  --bg-surface: #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-hover: rgb(79 140 255 / 0.08);
+  --border: #e4e8ef;
+  --text-1: #1a2233;
+  --text-2: #5b6577;
+  --text-3: #98a1b3;
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.06);
+  --shadow-2: 0 8px 24px rgb(0 0 0 / 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg-base);
+  color: var(--text-1);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+/* ── layout ── */
+
+.shell {
+  display: flex;
+  height: 100%;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 28px 48px;
+}
+
+/* ── cards ── */
+
+.card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-1);
+  padding: 16px;
+  transition: transform 140ms ease-out, box-shadow 140ms ease-out;
+}
+
+.card.hoverable:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-2);
+}
+
+.card-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 12px;
+  color: var(--text-1);
+}
+
+/* ── buttons ── */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-1);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 140ms ease-out, border-color 140ms ease-out;
+}
+
+.btn:hover {
+  border-color: var(--accent);
+  background: var(--bg-hover);
+}
+
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.btn.primary:hover {
+  filter: brightness(1.12);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ── badges ── */
+
+.badge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+
+.badge.up {
+  background: rgb(239 68 68 / 0.14);
+  color: var(--up);
+}
+
+.badge.flat {
+  background: rgb(139 147 167 / 0.16);
+  color: var(--flat);
+}
+
+.badge.down {
+  background: rgb(34 197 94 / 0.14);
+  color: var(--down);
+}
+
+.badge.accent {
+  background: rgb(79 140 255 / 0.14);
+  color: var(--accent);
+}
+
+.badge.warn {
+  background: rgb(245 158 11 / 0.14);
+  color: var(--warn);
+}
+
+/* cause_type tags (docs 5.0.2) */
+.tag {
+  display: inline-block;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.tag.口径差异 { background: rgb(79 140 255 / 0.12); color: var(--accent); }
+.tag.时间尺度 { background: rgb(167 139 250 / 0.14); color: #a78bfa; }
+.tag.框架假设 { background: rgb(251 146 60 / 0.14); color: #fb923c; }
+.tag.信息时效 { background: rgb(34 211 238 / 0.14); color: #22d3ee; }
+.tag.立场差异 { background: rgb(244 114 182 / 0.14); color: #f472b6; }
+.tag.未生成 { background: rgb(139 147 167 / 0.14); color: var(--flat); }
+.tag.其他 { background: rgb(139 147 167 / 0.14); color: var(--flat); }
+
+/* ── tables ── */
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-2);
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.table tbody tr {
+  transition: background 140ms ease-out;
+}
+
+.table tbody tr:nth-child(even) {
+  background: rgb(255 255 255 / 0.015);
+}
+
+.table tbody tr:hover {
+  background: var(--bg-hover);
+  box-shadow: inset 2px 0 0 var(--accent);
+  cursor: pointer;
+}
+
+/* ── forms ── */
+
+.input,
+.select {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-1);
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+.input:focus,
+.select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* ── status dots ── */
+
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.dot.done {
+  background: var(--down);
+}
+
+.dot.running {
+  background: var(--accent);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.dot.failed {
+  background: var(--up);
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* ── empty / skeleton ── */
+
+.empty {
+  text-align: center;
+  padding: 56px 20px;
+  color: var(--text-3);
+}
+
+.empty .icon {
+  font-size: 34px;
+  margin-bottom: 8px;
+}
+
+.skeleton {
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, var(--bg-elevated) 25%, var(--border) 50%, var(--bg-elevated) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* ── page fade ── */
+
+.page-enter-active {
+  transition: opacity 240ms ease-out, transform 240ms ease-out;
+}
+
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
