@@ -51,11 +51,11 @@ const nav = [
         </div>
       </header>
       <div class="content">
-        <RouterView v-slot="{ Component }">
-          <Transition name="page" appear>
-            <component :is="Component" />
-          </Transition>
-        </RouterView>
+        <Transition name="page" appear>
+          <div :key="route.path" class="route-page">
+            <RouterView />
+          </div>
+        </Transition>
       </div>
     </div>
   </div>
