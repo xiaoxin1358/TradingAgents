@@ -553,11 +553,11 @@ M1 完成后即可日常使用；M2/M3 为增量。
 
 ### 12.1 现状盘点：三个入口的子进程化可行性
 
-| 任务类型 | 入口 | 非交互？ | M2 前置工作 |
-| --- | --- | --- | --- |
-| 研报阅读 | `run_report_reader.py --date YYYY-MM-DD [--root ...]` | ✅ argparse | 无 |
-| 板块轮动 | `run_pre_analyst.py --ticker X [--date] [--provider/--model/--base-url]` | ✅ argparse | 无 |
-| 交易分析 | `cli analyze` | ❌ Rich 交互式选择（provider/标的/分析师/深度…） | **12.4.1 前置小改** |
+| 任务类型 | 入口                                                                     | 非交互？                                         | M2 前置工作         |
+| -------- | ------------------------------------------------------------------------ | ------------------------------------------------ | ------------------- |
+| 研报阅读 | `run_report_reader.py --date YYYY-MM-DD [--root ...]`                    | ✅ argparse                                      | 无                  |
+| 板块轮动 | `run_pre_analyst.py --ticker X [--date] [--provider/--model/--base-url]` | ✅ argparse                                      | 无                  |
+| 交易分析 | `cli analyze`                                                            | ❌ Rich 交互式选择（provider/标的/分析师/深度…） | **12.4.1 前置小改** |
 
 ### 12.2 任务模型与状态机
 
@@ -567,22 +567,33 @@ stateDiagram-v2
     running --> done: 子进程退出码 0
     running --> failed: 退出码非 0
     running --> cancelled: （可选）显式 kill
+    running --> interrupted: 后端进程重启/崩溃时发现 running
     done --> [*]
     failed --> [*]
     cancelled --> [*]
+    interrupted --> [*]
 ```
 
 - **Job 记录**（`~/.tradingagents/jobs.json`，JSON 行数组，M2 不引数据库）：
 
 ```json
-{"id": "8f3c1e", "type": "daily", "params": {"date": "2026-08-13"},
- "status": "done", "created_at": 1755230400, "finished_at": 1755231000,
- "exit_code": 0, "log_file": "jobs/8f3c1e.log"}
+{
+  "id": "8f3c1e",
+  "type": "daily",
+  "params": { "date": "2026-08-13" },
+  "status": "done",
+  "pid": 12345,
+  "created_at": 1755230400,
+  "finished_at": 1755231000,
+  "exit_code": 0,
+  "log_file": "jobs/8f3c1e.log"
+}
 ```
 
 - **日志**：每个任务一个文件 `~/.tradingagents/jobs/{id}.log`；后端按行追加，SSE 只推新行，不进内存长留（`ponytail:` 日志内存环形缓冲 500 行，回看完整日志读文件）
 - **id**：6 位 base62 随机（够单用户区分），不是 UUID 全量
 - **并发**：全局单任务锁（模块级 `threading.Lock`）。`ponytail:` 单用户够用；多用户时改为每用户 1 任务 + 队列
+- **jobs.json 原子写**：写临时文件 + `os.replace`，避免中途崩溃损坏账本
 
 ### 12.3 后端实现（`webapi/jobs.py` + main.py 路由）
 
@@ -592,32 +603,48 @@ class JobManager:
     def __init__(self, base_dir: Path):  # ~/.tradingagents/
         self.lock = threading.Lock()      # 单任务锁
         self.jobs: dict[str, Job] = {}
+        self.restore()                    # 见"重启恢复"
+
+    def restore(self):
+        # 启动时扫描 jobs.json：status=running 的记录若 pid 已不存在
+        # （或无法确认存活）→ 标记 interrupted；pid 还活着 → 尝试 kill 后标记
+        # 防"后端重启后页面永远显示运行中"
 
     def start(self, job_type: str, params: dict) -> Job:
         # 1. 校验 type/params（见 12.5）
-        # 2. 锁内检查无 running 任务，创建 Job（running）
-        # 3. Popen(cmd, cwd=项目根, shell=False, env={**os.environ, PYTHONIOENCODING="utf-8"})
+        # 2. 锁内检查无 running 任务，创建 Job（running），记录 pid
+        # 3. Popen(cmd, cwd=项目根, shell=False,
+        #          env={**os.environ, PYTHONIOENCODING="utf-8",
+        #               PYTHONUNBUFFERED="1"})   # 关键：否则 stdout 块缓冲，
+        #                                        # SSE 会长时间无输出
         # 4. 启动 reader 线程：逐行读 stdout → 追加 log 文件 → 推广播队列
-        # 5. 进程结束后更新 status/exit_code/finished_at → 写 jobs.json
+        # 5. 进程结束后更新 status/exit_code/finished_at → 原子写 jobs.json
+
+    def shutdown(self):
+        # FastAPI lifespan 退出时 kill 当前子进程，防孤儿进程
 
     def events(self, job_id: str) -> Iterator[str]:
         # SSE 格式: event: log / data: {"line": "..."}
         # 历史行从 log 文件回放，新行从广播队列订阅；status 变更也推
+        # 队列取数必须 anyio.to_thread.run_sync(queue.get, ...)，
+        # 否则阻塞事件循环（async 生成器里直接 queue.get() 是常见坑）
 ```
 
 要点：
 
 1. **命令映射**（白名单，全部 `shell=False` 列表参数，防注入）：
 
-   | type | 命令 |
-   | --- | --- |
-   | `daily` | `[sys.executable, "run_report_reader.py", "--date", date]`（可选 `--root`） |
-   | `pre` | `[sys.executable, "run_pre_analyst.py", "--ticker", ticker]`（可选 `--date`） |
-   | `trading` | 见 12.4.1，非交互参数化后的 `cli analyze` |
+   | type      | 命令                                                                          |
+   | --------- | ----------------------------------------------------------------------------- |
+   | `daily`   | `[sys.executable, "run_report_reader.py", "--date", date]`（可选 `--root`）   |
+   | `pre`     | `[sys.executable, "run_pre_analyst.py", "--ticker", ticker]`（可选 `--date`） |
+   | `trading` | 见 12.4.1，非交互参数化后的 `cli analyze`                                     |
 
-2. **子进程环境**：`PYTHONIOENCODING=utf-8` + 继承后端环境（`.env` 已加载、conda 环境一致）；`cwd = 项目根`
-3. **SSE**：FastAPI `StreamingResponse`，`Content-Type: text/event-stream`；`event: status` 与 `event: log` 两类
-4. **前端断线重连**：EventSource 自动重连；重连后接口回放 `log_file` 全文（简单可靠，不做增量游标）
+2. **子进程环境**：`PYTHONIOENCODING=utf-8` + **`PYTHONUNBUFFERED=1`** + 继承后端环境（`.env` 已加载、conda 环境一致）；`cwd = 项目根`
+3. **daily 数据根目录**：`run_report_reader.py` 默认 `--root D:\WORKS\all_data\data\report_data`。后端规则：不传 `root` 时用脚本默认；设置 env `TRADINGAGENTS_REPORT_ROOT` 则后端显式传 `--root`。UI 上"可选数据根目录"输入框仅在后端开启了该 env 时显示
+4. **SSE**：FastAPI `StreamingResponse`，`Content-Type: text/event-stream`；`event: status` 与 `event: log` 两类
+5. **前端断线重连**：EventSource 自动重连；重连后接口回放 `log_file` 全文（简单可靠，不做增量游标）
+6. **取消语义**：Windows 下 `Popen.kill()` = TerminateProcess，只杀任务进程本身（三个入口都是单进程脚本，够用）。`ponytail:` 若未来任务带孙进程，升级为 job object / taskkill /T
 
 ### 12.4.1 前置小改：`cli analyze` 非交互化（约 30 行）
 
@@ -641,20 +668,20 @@ def analyze(
 
 ### 12.5 API 扩展（对齐 6.3）
 
-| 方法 | 路径 | 说明 |
-| --- | --- | --- |
-| POST | `/api/jobs` | body `{type, params}`；校验失败 422；有任务在跑 409 |
-| GET | `/api/jobs` | 历史任务（时间倒序，含状态/耗时） |
-| GET | `/api/jobs/{id}` | 单任务 + `log_tail`（最后 500 行） |
-| GET | `/api/jobs/{id}/events` | SSE：日志行 + 状态变更 |
-| POST | `/api/jobs/{id}/cancel` | （可选）kill 子进程 → `cancelled` |
+| 方法 | 路径                    | 说明                                                |
+| ---- | ----------------------- | --------------------------------------------------- |
+| POST | `/api/jobs`             | body `{type, params}`；校验失败 422；有任务在跑 409 |
+| GET  | `/api/jobs`             | 历史任务（时间倒序，含状态/耗时）                   |
+| GET  | `/api/jobs/{id}`        | 单任务 + `log_tail`（最后 500 行）                  |
+| GET  | `/api/jobs/{id}/events` | SSE：日志行 + 状态变更                              |
+| POST | `/api/jobs/{id}/cancel` | （可选）kill 子进程 → `cancelled`                   |
 
 参数校验（白名单，注入的最后一道防线）：
 
 - `type ∈ {daily, pre, trading}`
 - `date`：`^\d{4}-\d{2}-\d{2}$` 且为合法日期
 - `ticker`：`^[A-Za-z0-9._-]{1,20}$`（与 CLI 的 ticker 硬化一致）
-- `root`（daily 可选）：后端只允许 `D:\WORKS\...` 这类已配置白名单前缀，默认不暴露
+- `root`（daily 可选）：仅当后端配置了 `TRADINGAGENTS_REPORT_ROOT` 时接受该值，且必须等于该白名单值（见 12.3 要点 3），否则 422
 
 ### 12.6 前端实现
 
@@ -675,7 +702,7 @@ frontend/src/
    - pre：标的（默认 SPY）、日期
    - trading：置灰 + "即将开放"角标（等 CLI 参数化合并）
 2. **运行中面板**：阶段徽章（脉冲）+ 终端式日志面板（深底、等宽、绿色时间戳、自动滚动到底；**过滤 ANSI 转义序列**——CLI 的 Rich 输出含颜色码）；右上角"取消"按钮（可选）
-3. **历史任务表**：类型图标 | 参数摘要（等宽）| 开始/结束 | 耗时 | 状态徽章（成功绿/失败红/取消灰）；行点击展开日志尾部
+3. **历史任务表**：类型图标 | 参数摘要（等宽）| 开始/结束 | 耗时 | 状态徽章（成功绿/失败红/取消灰/**中断灰·角标"后端重启"**）；行点击展开日志尾部
 4. **联动**：
    - App.vue 顶栏状态点：空闲=绿"API 在线"，有任务=蓝脉冲"任务运行中 · {type}"
    - 任务 `done` 后弹提示条："研报阅读 2026-08-13 完成 → 去浏览"（路由到 `/reports/daily`）
@@ -688,11 +715,11 @@ frontend/src/
 
 ### 12.7 测试与自检（不引测试框架）
 
-| 层 | 验证 |
-| --- | --- |
-| 单元（JobManager） | ① 参数校验拒绝非法 date/ticker ② 状态机：完成后 status=done、jobs.json 落盘 ③ 单任务锁：running 期间再 start 抛 409 ④ 日志文件写入。用 `sys.executable -c "print(...)"` 替身命令，**不真跑图** |
-| 集成（手工） | 页面上发起"研报阅读 2026-08-13"→ SSE 日志滚动 → 完成后 `reports/2026-08-13/` 产物刷新、矛盾库新增记录、仪表盘 Top5 变化 |
-| 回归 | M1 的 14 个测试 + webapi 3 个测试保持绿 |
+| 层                 | 验证                                                                                                                                                                                           |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 单元（JobManager） | ① 参数校验拒绝非法 date/ticker ② 状态机：完成后 status=done、jobs.json 落盘 ③ 单任务锁：running 期间再 start 抛 409 ④ 日志文件写入 ⑤ **重启恢复：jobs.json 预置 running + 假 pid → 初始化后标记 interrupted**。用 `sys.executable -c "print(...)"` 替身命令，**不真跑图** |
+| 集成（手工）       | 页面上发起"研报阅读 2026-08-13"→ SSE 日志滚动 → 完成后 `reports/2026-08-13/` 产物刷新、矛盾库新增记录、仪表盘 Top5 变化                                                                        |
+| 回归               | M1 的 14 个测试 + webapi 3 个测试保持绿                                                                                                                                                        |
 
 ### 12.8 与 M1 的边界
 
