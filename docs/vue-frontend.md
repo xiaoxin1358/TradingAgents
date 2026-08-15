@@ -30,21 +30,21 @@
 
 ### 1.2 目标
 
-| 目标 | 说明 |
-| --- | --- |
-| 报告浏览 | 在浏览器里阅读交易分析报告树、每日研报总结、Pre-Analyst 板块轮动报告 |
-| 矛盾追踪 | 浏览/筛选矛盾库（v3.3 数据），查看双方立场、洞察、生命周期 |
+| 目标     | 说明                                                                   |
+| -------- | ---------------------------------------------------------------------- |
+| 报告浏览 | 在浏览器里阅读交易分析报告树、每日研报总结、Pre-Analyst 板块轮动报告   |
+| 矛盾追踪 | 浏览/筛选矛盾库（v3.3 数据），查看双方立场、洞察、生命周期             |
 | 任务运行 | 从页面上发起分析任务（analyze / reader / pre-analyst），查看进度与历史 |
-| 决策记忆 | 浏览决策日志与反思记录 |
+| 决策记忆 | 浏览决策日志与反思记录                                                 |
 
 ### 1.3 非目标
 
-| 非目标 | 说明 |
-| --- | --- |
-| 实时行情/图表 | 数据由现有 dataflows 层在任务运行中获取，前端不直连行情 |
+| 非目标         | 说明                                                              |
+| -------------- | ----------------------------------------------------------------- |
+| 实时行情/图表  | 数据由现有 dataflows 层在任务运行中获取，前端不直连行情           |
 | 前端直接调 LLM | 所有 LLM 调用仍在 Python 进程内（CLI/图），前端只读产物与下发任务 |
-| 交易执行 | 沿用框架的"模拟交易所"，不新增任何下单能力 |
-| 替代 CLI | CLI 保留；前端是 CLI 的可视化壳 |
+| 交易执行       | 沿用框架的"模拟交易所"，不新增任何下单能力                        |
+| 替代 CLI       | CLI 保留；前端是 CLI 的可视化壳                                   |
 
 ---
 
@@ -52,35 +52,35 @@
 
 ### 2.1 三条功能线
 
-| 功能线 | 入口 | 产物 | 前端页面 |
-| --- | --- | --- | --- |
-| **主交易图**（多 Agent 交易分析） | `cli analyze` / `main.py` | `reports/{TICKER}_{时间戳}/complete_report.md` + 分层目录 `1_analysts/` `2_research/` `3_trading/` `4_risk/` `5_portfolio/` | 交易分析 |
-| **研报阅读器**（5 类研报 + 矛盾分析） | `run_report_reader.py --date` | `reports/{date}/` 下 7 个文件：`macro_summary.md` `industry_summary.md` `stock_summary.md` `strategy_summary.md` `morning_summary.md` `final_summary.md` `contradiction_report.md` | 研报阅读、矛盾追踪 |
-| **Pre-Analyst**（板块轮动预分析） | `run_pre_analyst.py --ticker` | `reports/pre_analyst_{时间戳}/`：`cyclical_analyst.md` `growth_analyst.md` `defensive_analyst.md` `sector_manager.md` `complete_report.md` | 交易分析（列表并入） |
+| 功能线                                | 入口                          | 产物                                                                                                                                                                               | 前端页面             |
+| ------------------------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| **主交易图**（多 Agent 交易分析）     | `cli analyze` / `main.py`     | `reports/{TICKER}_{时间戳}/complete_report.md` + 分层目录 `1_analysts/` `2_research/` `3_trading/` `4_risk/` `5_portfolio/`                                                        | 交易分析             |
+| **研报阅读器**（5 类研报 + 矛盾分析） | `run_report_reader.py --date` | `reports/{date}/` 下 7 个文件：`macro_summary.md` `industry_summary.md` `stock_summary.md` `strategy_summary.md` `morning_summary.md` `final_summary.md` `contradiction_report.md` | 研报阅读、矛盾追踪   |
+| **Pre-Analyst**（板块轮动预分析）     | `run_pre_analyst.py --ticker` | `reports/pre_analyst_{时间戳}/`：`cyclical_analyst.md` `growth_analyst.md` `defensive_analyst.md` `sector_manager.md` `complete_report.md`                                         | 交易分析（列表并入） |
 
 ### 2.2 数据资产（前端的数据源）
 
-| 资产 | 位置 | 形态 | 读取方式 |
-| --- | --- | --- | --- |
-| 主图报告树 | `reports/{TICKER}_{ts}/` | markdown 文件树 | 文件系统扫描 |
-| 每日研报报告 | `reports/{date}/` | 7 个 markdown | 文件系统扫描 |
-| Pre-Analyst 报告 | `reports/pre_analyst_{ts}/` | 5 个 markdown | 文件系统扫描 |
-| 矛盾库 | `reports/contradictions.db` | SQLite（`contradictions` 表，含 `insight` JSON 列） | SQLite 只读查询 |
-| 决策记忆 | `~/.tradingagents/memory/trading_memory.md`（`TRADINGAGENTS_MEMORY_LOG_PATH` 可覆盖） | 单个 markdown | 文件读取 |
-| 配置 | `.env`（`TRADINGAGENTS_*`）与 `default_config.py` | 键值 | 只读展示 |
+| 资产             | 位置                                                                                  | 形态                                                | 读取方式        |
+| ---------------- | ------------------------------------------------------------------------------------- | --------------------------------------------------- | --------------- |
+| 主图报告树       | `reports/{TICKER}_{ts}/`                                                              | markdown 文件树                                     | 文件系统扫描    |
+| 每日研报报告     | `reports/{date}/`                                                                     | 7 个 markdown                                       | 文件系统扫描    |
+| Pre-Analyst 报告 | `reports/pre_analyst_{ts}/`                                                           | 5 个 markdown                                       | 文件系统扫描    |
+| 矛盾库           | `reports/contradictions.db`                                                           | SQLite（`contradictions` 表，含 `insight` JSON 列） | SQLite 只读查询 |
+| 决策记忆         | `~/.tradingagents/memory/trading_memory.md`（`TRADINGAGENTS_MEMORY_LOG_PATH` 可覆盖） | 单个 markdown                                       | 文件读取        |
+| 配置             | `.env`（`TRADINGAGENTS_*`）与 `default_config.py`                                     | 键值                                                | 只读展示        |
 
 ### 2.3 矛盾数据模型（`contradictions` 表）
 
 前端矛盾页直接映射以下列，**无需理解图内部**：
 
-| 列 | 前端用途 |
-| --- | --- |
-| `id` | 行唯一键（`subject|brokerA|brokerB|kind`） |
-| `subject` / `kind` / `scope` / `scale` | 分组与筛选（中文化映射见矛盾报告 v3.3） |
-| `claim_a` / `claim_b`（JSON） | 双方立场卡片：broker、direction（-1/0/1）、quote |
-| `status` / `winner` / `resolved_by` / `resolved_date` | 生命周期（open / resolved） |
-| `first_seen` / `last_seen` | 时间线与持续天数 |
-| `insight`（JSON） | 洞察：`cause_type` / `cause` / `analysis` / `watch` / `tilt` |
+| 列                                                    | 前端用途                                                     |
+| ----------------------------------------------------- | ------------------------------------------------------------ | ------- | ------- | ------- |
+| `id`                                                  | 行唯一键（`subject                                           | brokerA | brokerB | kind`） |
+| `subject` / `kind` / `scope` / `scale`                | 分组与筛选（中文化映射见矛盾报告 v3.3）                      |
+| `claim_a` / `claim_b`（JSON）                         | 双方立场卡片：broker、direction（-1/0/1）、quote             |
+| `status` / `winner` / `resolved_by` / `resolved_date` | 生命周期（open / resolved）                                  |
+| `first_seen` / `last_seen`                            | 时间线与持续天数                                             |
+| `insight`（JSON）                                     | 洞察：`cause_type` / `cause` / `analysis` / `watch` / `tilt` |
 
 ---
 
@@ -122,16 +122,16 @@ graph LR
 
 ## 4. 页面与路由
 
-| 路由 | 页面 | 数据源 | 核心能力 |
-| --- | --- | --- | --- |
-| `/` | 仪表盘 | overview API | 统计卡片 + 最近运行 + 今日矛盾 Top |
-| `/reports/trading` | 交易分析 | 报告树 API | 左树右文，agent 分层阅读 |
-| `/reports/daily` | 研报阅读 | 按日期 API | 日期切换 + 7 个报告 tab |
-| `/reports/pre` | 板块轮动 | 报告树 API | Pre-Analyst 运行浏览 |
-| `/contradictions` | 矛盾追踪 | 矛盾 API | 速览表 + 筛选 + 详情抽屉 |
-| `/jobs` | 任务中心 | jobs API + SSE | 发起/监控/历史任务 |
-| `/memory` | 决策日志 | memory API | 决策记忆 markdown |
-| `/settings` | 设置 | settings API | LLM 配置与模型目录（只读） |
+| 路由               | 页面     | 数据源         | 核心能力                           |
+| ------------------ | -------- | -------------- | ---------------------------------- |
+| `/`                | 仪表盘   | overview API   | 统计卡片 + 最近运行 + 今日矛盾 Top |
+| `/reports/trading` | 交易分析 | 报告树 API     | 左树右文，agent 分层阅读           |
+| `/reports/daily`   | 研报阅读 | 按日期 API     | 日期切换 + 7 个报告 tab            |
+| `/reports/pre`     | 板块轮动 | 报告树 API     | Pre-Analyst 运行浏览               |
+| `/contradictions`  | 矛盾追踪 | 矛盾 API       | 速览表 + 筛选 + 详情抽屉           |
+| `/jobs`            | 任务中心 | jobs API + SSE | 发起/监控/历史任务                 |
+| `/memory`          | 决策日志 | memory API     | 决策记忆 markdown                  |
+| `/settings`        | 设置     | settings API   | LLM 配置与模型目录（只读）         |
 
 布局：左侧导航栏（应用名 + 8 个入口）+ 顶栏（当前任务运行状态徽标）+ 内容区。移动端导航折叠为抽屉。
 
@@ -216,11 +216,11 @@ graph LR
 
 参数表单与 CLI 一一对应：
 
-| 任务类型 | 参数 | 底层命令 |
-| --- | --- | --- |
-| 交易分析 | 标的、日期、分析师勾选、深/浅思考模型、研究深度、输出语言、checkpoint 开关 | `cli analyze` |
-| 研报阅读 | 日期、数据根目录 | `run_report_reader.py --date` |
-| 板块轮动 | 标的 | `run_pre_analyst.py --ticker` |
+| 任务类型 | 参数                                                                       | 底层命令                      |
+| -------- | -------------------------------------------------------------------------- | ----------------------------- |
+| 交易分析 | 标的、日期、分析师勾选、深/浅思考模型、研究深度、输出语言、checkpoint 开关 | `cli analyze`                 |
+| 研报阅读 | 日期、数据根目录                                                           | `run_report_reader.py --date` |
+| 板块轮动 | 标的                                                                       | `run_pre_analyst.py --ticker` |
 
 - 进度：后端解析子进程 stdout（项目已按 UTF-8 输出），按行推 SSE；任务元数据（类型/参数/状态/时间）存后端一个 JSON 文件即可（`~/.tradingagents/jobs.json`），不引数据库
 - 历史"完成"态同时扫描 `reports/` 校验产物是否存在
@@ -232,7 +232,7 @@ graph LR
 
 ### 5.7 设置 `/settings`
 
-- 只读展示：provider、deep/quick 模型、backend_url、checkpoint 开关等（映射 `.env` `TRADINGAGENTS_*` 与 `default_config.py`）
+- 只读展示：provider、deep/quick 模型、backend*url、checkpoint 开关等（映射 `.env` `TRADINGAGENTS*\*`与`default_config.py`）
 - 模型目录表格：从 `model_catalog.py` 导出静态 JSON（后端启动时生成一次）
 - 明确标注"修改请编辑 `.env` 后重启任务"——前端不做配置写入（M3 可选）
 
@@ -244,37 +244,37 @@ FastAPI 单文件服务（`webapi/` 目录），前缀 `/api`。全部返回 JSO
 
 ### 6.1 概览与报告
 
-| 方法 | 路径 | 说明 |
-| --- | --- | --- |
-| GET | `/api/overview` | 统计卡片 + 最近运行 + 矛盾 Top5 |
-| GET | `/api/dates` | 有研报报告的日期列表 |
-| GET | `/api/reports/{date}` | 该日期 7 个文件的存在性与元信息 |
-| GET | `/api/reports/{date}/{name}` | 单个报告 markdown 全文 |
-| GET | `/api/trading-runs` | 主图运行列表（`{TICKER}_{ts}`） |
-| GET | `/api/trading-runs/{run}/{path}` | 报告树内文件内容（path 相对 run 目录） |
-| GET | `/api/pre-runs` | Pre-Analyst 运行列表 |
-| GET | `/api/pre-runs/{run}/{path}` | 同上 |
+| 方法 | 路径                             | 说明                                   |
+| ---- | -------------------------------- | -------------------------------------- |
+| GET  | `/api/overview`                  | 统计卡片 + 最近运行 + 矛盾 Top5        |
+| GET  | `/api/dates`                     | 有研报报告的日期列表                   |
+| GET  | `/api/reports/{date}`            | 该日期 7 个文件的存在性与元信息        |
+| GET  | `/api/reports/{date}/{name}`     | 单个报告 markdown 全文                 |
+| GET  | `/api/trading-runs`              | 主图运行列表（`{TICKER}_{ts}`）        |
+| GET  | `/api/trading-runs/{run}/{path}` | 报告树内文件内容（path 相对 run 目录） |
+| GET  | `/api/pre-runs`                  | Pre-Analyst 运行列表                   |
+| GET  | `/api/pre-runs/{run}/{path}`     | 同上                                   |
 
 ### 6.2 矛盾
 
-| 方法 | 路径 | 说明 |
-| --- | --- | --- |
-| GET | `/api/contradictions` | 列表；query：`status` `kind` `scope` `scale` `subject` `cause_type` `min_days` `limit` `offset` |
-| GET | `/api/contradictions/{id}` | 单条详情（含 insight JSON 展开） |
-| GET | `/api/contradictions/stats` | v3.3 统计口径（含类型/归因分布、最长未决） |
+| 方法 | 路径                        | 说明                                                                                            |
+| ---- | --------------------------- | ----------------------------------------------------------------------------------------------- |
+| GET  | `/api/contradictions`       | 列表；query：`status` `kind` `scope` `scale` `subject` `cause_type` `min_days` `limit` `offset` |
+| GET  | `/api/contradictions/{id}`  | 单条详情（含 insight JSON 展开）                                                                |
+| GET  | `/api/contradictions/stats` | v3.3 统计口径（含类型/归因分布、最长未决）                                                      |
 
 - `contradictions.db` 以 `file:...?mode=ro` 只读打开；查询参数白名单拼 SQL（禁止字符串拼接注入）
 - `cause_type` 筛选后端从 `insight` JSON 列 `json_extract(insight, '$.cause_type')` 提取
 
 ### 6.3 任务与记忆
 
-| 方法 | 路径 | 说明 |
-| --- | --- | --- |
-| POST | `/api/jobs` | 创建任务：`{type, params}`；校验参数后启动子进程 |
-| GET | `/api/jobs` | 历史任务列表 |
-| GET | `/api/jobs/{id}` | 单任务状态 |
-| GET | `/api/jobs/{id}/events` | SSE 流：stdout 行 + 状态变更 |
-| GET | `/api/memory` | 决策记忆 markdown 全文 |
+| 方法 | 路径                    | 说明                                             |
+| ---- | ----------------------- | ------------------------------------------------ |
+| POST | `/api/jobs`             | 创建任务：`{type, params}`；校验参数后启动子进程 |
+| GET  | `/api/jobs`             | 历史任务列表                                     |
+| GET  | `/api/jobs/{id}`        | 单任务状态                                       |
+| GET  | `/api/jobs/{id}/events` | SSE 流：stdout 行 + 状态变更                     |
+| GET  | `/api/memory`           | 决策记忆 markdown 全文                           |
 
 - 任务只允许同时跑 1 个（全局锁，`ponytail:` 单用户场景够用；多用户时升级为每用户 1 任务）
 - 子进程环境变量继承后端进程（`.env` 已加载）
@@ -288,19 +288,19 @@ FastAPI 单文件服务（`webapi/` 目录），前缀 `/api`。全部返回 JSO
 
 ## 7. 前端技术栈与目录结构
 
-| 项 | 选型 | 理由 |
-| --- | --- | --- |
-| 框架 | Vue 3（Composition API）+ TypeScript | 生态成熟、上手快 |
-| 构建 | Vite | 秒级 HMR |
-| UI 组件 | Element Plus | 表格/抽屉/表单开箱即用，中文文档 |
-| 图表 | ECharts | 统计分布图（可选增强） |
-| Markdown | `markdown-it`（自定义组件封装） | 渲染报告与 `<details>` |
-| 状态 | Pinia | 轻量 |
-| 路由 | Vue Router 4 | 标准 |
-| 请求 | `fetch` 封装 + EventSource | 不额外引 axios |
+| 项       | 选型                                 | 理由                             |
+| -------- | ------------------------------------ | -------------------------------- |
+| 框架     | Vue 3（Composition API）+ TypeScript | 生态成熟、上手快                 |
+| 构建     | Vite                                 | 秒级 HMR                         |
+| UI 组件  | Element Plus                         | 表格/抽屉/表单开箱即用，中文文档 |
+| 图表     | ECharts                              | 统计分布图（可选增强）           |
+| Markdown | `markdown-it`（自定义组件封装）      | 渲染报告与 `<details>`           |
+| 状态     | Pinia                                | 轻量                             |
+| 路由     | Vue Router 4                         | 标准                             |
+| 请求     | `fetch` 封装 + EventSource           | 不额外引 axios                   |
 
 ```
-webui/
+frontend/
 ├── index.html
 ├── vite.config.ts          # dev 代理 /api → http://127.0.0.1:8000
 ├── package.json
@@ -350,14 +350,14 @@ webapi/
 
 ## 8. 通用组件
 
-| 组件 | Props | 职责 |
-| --- | --- | --- |
-| `MarkdownViewer` | `content: string` | markdown-it 渲染，支持 `<details>`，代码块高亮 |
-| `DirectionBadge` | `direction: -1\|0\|1` | 看多/中性/看空徽章（红/灰/绿） |
-| `ContradictionCard` | `row: ContradictionRow` | 双方 claim + 洞察摘要（同 v3.3 折叠样式） |
-| `ContradictionDrawer` | `rowId: string` | 抽屉详情：claim 卡片、洞察全文、生命周期 |
-| `RunCard` | `run: RunInfo` | 运行卡片：类型图标、标的/日期、时间、状态点 |
-| `StatsCard` | `label/value/delta` | 仪表盘统计卡片 |
+| 组件                  | Props                   | 职责                                           |
+| --------------------- | ----------------------- | ---------------------------------------------- |
+| `MarkdownViewer`      | `content: string`       | markdown-it 渲染，支持 `<details>`，代码块高亮 |
+| `DirectionBadge`      | `direction: -1\|0\|1`   | 看多/中性/看空徽章（红/灰/绿）                 |
+| `ContradictionCard`   | `row: ContradictionRow` | 双方 claim + 洞察摘要（同 v3.3 折叠样式）      |
+| `ContradictionDrawer` | `rowId: string`         | 抽屉详情：claim 卡片、洞察全文、生命周期       |
+| `RunCard`             | `run: RunInfo`          | 运行卡片：类型图标、标的/日期、时间、状态点    |
+| `StatsCard`           | `label/value/delta`     | 仪表盘统计卡片                                 |
 
 ---
 
@@ -383,11 +383,11 @@ sequenceDiagram
 
 ## 10. 实施路线图
 
-| 阶段 | 内容 | 自检（可运行的最小验证） |
-| --- | --- | --- |
+| 阶段            | 内容                                                                                            | 自检（可运行的最小验证）                                                                    |
+| --------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
 | **M1 只读浏览** | 后端 reports/contradictions/memory API + 前端 4 个浏览页（交易分析/研报阅读/矛盾追踪/决策日志） | 打开 `localhost:5173/contradictions` 能看到 2026-08-13 的 28 条矛盾、筛选生效、详情抽屉正确 |
-| **M2 任务中心** | jobs API + SSE + 任务表单 + 仪表盘完善 | 页面上发起"研报阅读 2026-08-13"，进度实时滚动，结束后 `reports/` 出现产物 |
-| **M3 增强** | 矛盾图表（归因分布）、运行对比、设置页模型目录、Pre-Analyst 页 | 两个日期 final_summary 并排对比渲染 |
+| **M2 任务中心** | jobs API + SSE + 任务表单 + 仪表盘完善                                                          | 页面上发起"研报阅读 2026-08-13"，进度实时滚动，结束后 `reports/` 出现产物                   |
+| **M3 增强**     | 矛盾图表（归因分布）、运行对比、设置页模型目录、Pre-Analyst 页                                  | 两个日期 final_summary 并排对比渲染                                                         |
 
 M1 完成后即可日常使用；M2/M3 为增量。
 
@@ -395,12 +395,12 @@ M1 完成后即可日常使用；M2/M3 为增量。
 
 ## 11. 验收标准
 
-| 编号 | 验收项 | 通过条件 |
-| --- | --- | --- |
-| AC-1 | 报告树浏览 | 任意 `reports/{TICKER}_{ts}/` 的 5 层目录文件均可点击渲染 |
-| AC-2 | 每日研报 | 日期切换后 7 个 tab 与 `reports/{date}/` 文件一一对应，缺文件置灰 |
-| AC-3 | 矛盾速览 | `/contradictions` 概览表与 `contradiction_report.md` v3.3 口径一致 |
-| AC-4 | 矛盾筛选 | `status/kind/cause_type/对象搜索` 组合筛选结果与 SQL 直查一致 |
-| AC-5 | 任务触发 | 页面上启动"研报阅读"，SSE 有输出，结束后报告文件落盘 |
-| AC-6 | 安全 | `GET /api/trading-runs/../..` 类路径穿越请求一律 400 |
-| AC-7 | 零回归 | 前端/后端均不 import `tradingagents` 图模块（任务子进程除外），CLI 行为不变 |
+| 编号 | 验收项     | 通过条件                                                                    |
+| ---- | ---------- | --------------------------------------------------------------------------- |
+| AC-1 | 报告树浏览 | 任意 `reports/{TICKER}_{ts}/` 的 5 层目录文件均可点击渲染                   |
+| AC-2 | 每日研报   | 日期切换后 7 个 tab 与 `reports/{date}/` 文件一一对应，缺文件置灰           |
+| AC-3 | 矛盾速览   | `/contradictions` 概览表与 `contradiction_report.md` v3.3 口径一致          |
+| AC-4 | 矛盾筛选   | `status/kind/cause_type/对象搜索` 组合筛选结果与 SQL 直查一致               |
+| AC-5 | 任务触发   | 页面上启动"研报阅读"，SSE 有输出，结束后报告文件落盘                        |
+| AC-6 | 安全       | `GET /api/trading-runs/../..` 类路径穿越请求一律 400                        |
+| AC-7 | 零回归     | 前端/后端均不 import `tradingagents` 图模块（任务子进程除外），CLI 行为不变 |
