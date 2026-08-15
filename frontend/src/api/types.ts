@@ -112,8 +112,13 @@ export interface FileContent {
 
 // ── jobs (M2) ──
 
-export type JobType = "daily" | "pre" | "trading";
-export type JobStatus = "running" | "done" | "failed" | "cancelled" | "interrupted";
+export type JobType = "daily" | "pre" | "trading" | "spider";
+export type JobStatus =
+  | "running"
+  | "done"
+  | "failed"
+  | "cancelled"
+  | "interrupted";
 
 export interface Job {
   id: string;

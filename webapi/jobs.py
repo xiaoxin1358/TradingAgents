@@ -33,6 +33,10 @@ _JOBS_DIR = Path(os.environ.get(
     "TRADINGAGENTS_WEB_JOBS_DIR",
     Path.home() / ".tradingagents",  # jobs.json 在此目录，日志在 jobs/ 子目录
 ))
+# Spider task (docs/webui-spider-task.md): fixed whitelisted cwd + interpreter.
+_SPIDER_DIR = Path(os.environ.get("SPIDER_DIR", r"D:\WORKS\all_data"))
+_SPIDER_PYTHON = os.environ.get("SPIDER_PYTHON") or sys.executable
+_SPIDER_TYPES = {"industry", "stock", "macro", "strategy", "broker", "all"}
 
 
 class JobError(Exception):
@@ -53,7 +57,7 @@ def _is_valid_date(s: str) -> bool:
 
 def validate_params(job_type: str, params: dict) -> dict:
     """Whitelist the params per task type; raise JobError on anything else."""
-    if job_type not in ("daily", "pre"):
+    if job_type not in ("daily", "pre", "spider"):
         raise JobError(f"任务类型暂不支持: {job_type}")
     out: dict = {}
     if job_type == "daily":
@@ -67,6 +71,34 @@ def validate_params(job_type: str, params: dict) -> dict:
             if not allowed or root != allowed:
                 raise JobError("数据根目录不在后端白名单内")
             out["root"] = root
+    elif job_type == "spider":
+        report_type = (params.get("report_type") or "industry").strip()
+        if report_type not in _SPIDER_TYPES:
+            raise JobError("研报类型非法")
+        out["report_type"] = report_type
+        start = params.get("start")
+        end = params.get("end")
+        if start and not _is_valid_date(start):
+            raise JobError("开始日期格式非法,应为 YYYY-MM-DD")
+        if end and not _is_valid_date(end):
+            raise JobError("结束日期格式非法,应为 YYYY-MM-DD")
+        if start and end and start > end:
+            raise JobError("开始日期不能晚于结束日期")
+        if start:
+            out["start"] = start
+        if end:
+            out["end"] = end
+        if params.get("test"):
+            out["test"] = True
+            limit = params.get("limit")
+            if limit is not None:
+                try:
+                    limit = int(limit)
+                except (TypeError, ValueError):
+                    raise JobError("limit 必须是整数")
+                if not 1 <= limit <= 100:
+                    raise JobError("limit 超出范围 1-100")
+                out["limit"] = str(limit)
     else:  # pre
         ticker = (params.get("ticker") or "").strip() or "SPY"
         if not _TICKER_RE.match(ticker):
@@ -87,10 +119,30 @@ def _command(job_type: str, params: dict) -> list[str]:
         if params.get("root"):
             cmd += ["--root", params["root"]]
         return cmd
+    if job_type == "spider":
+        cmd = [
+            _SPIDER_PYTHON, "-m",
+            "src.industry_report_spider.industry_report_spider",
+            "--type", params["report_type"],
+        ]
+        if params.get("start"):
+            cmd += ["--start", params["start"]]
+        if params.get("end"):
+            cmd += ["--end", params["end"]]
+        if params.get("test"):
+            cmd += ["--test"]
+            if params.get("limit"):
+                cmd += ["--limit", params["limit"]]
+        return cmd
     cmd = [sys.executable, "run_pre_analyst.py", "--ticker", params["ticker"]]
     if params.get("date"):
         cmd += ["--date", params["date"]]
     return cmd
+
+
+def _cwd(job_type: str) -> Path:
+    """Spider runs inside SPIDER_DIR; everything else in the project root."""
+    return _SPIDER_DIR if job_type == "spider" else _PROJECT_ROOT
 
 
 class JobManager:
@@ -179,7 +231,7 @@ class JobManager:
         try:
             proc = subprocess.Popen(
                 _command(job_type, params),
-                cwd=_PROJECT_ROOT,
+                cwd=_cwd(job_type),
                 shell=False,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,

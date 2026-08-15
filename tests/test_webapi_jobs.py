@@ -41,6 +41,38 @@ def test_validate_rejects_bad_params():
     }
 
 
+def test_spider_validate_and_command():
+    # defaults
+    assert validate_params("spider", {}) == {"report_type": "industry"}
+    # invalid report type / date range / limit
+    with pytest.raises(JobError):
+        validate_params("spider", {"report_type": "xxx"})
+    with pytest.raises(JobError):
+        validate_params("spider", {"report_type": "macro", "start": "2026-08-15", "end": "2026-08-10"})
+    with pytest.raises(JobError):
+        validate_params("spider", {"report_type": "macro", "test": True, "limit": "abc"})
+    with pytest.raises(JobError):
+        validate_params("spider", {"report_type": "macro", "test": True, "limit": 999})
+    # full valid params
+    v = validate_params("spider", {
+        "report_type": "macro", "test": True, "limit": 3,
+        "start": "2026-08-10", "end": "2026-08-15",
+    })
+    assert v == {
+        "report_type": "macro", "start": "2026-08-10",
+        "end": "2026-08-15", "test": True, "limit": "3",
+    }
+    # command mapping
+    cmd = jobs_mod._command("spider", v)
+    assert cmd[:2] == [sys.executable, "-m"]
+    assert "src.industry_report_spider.industry_report_spider" in cmd
+    assert "--type" in cmd and "macro" in cmd
+    assert "--start" in cmd and "--end" in cmd and "--test" in cmd and "--limit" in cmd
+    # cwd points at the spider repo, not the project root
+    assert jobs_mod._cwd("spider").name == "all_data"
+    assert jobs_mod._cwd("daily") != jobs_mod._cwd("spider")
+
+
 def test_job_runs_to_done_and_persists(manager):
     job = manager.start("daily", {"date": "2026-08-13"})
     for _ in range(50):

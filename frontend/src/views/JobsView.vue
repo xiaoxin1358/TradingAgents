@@ -11,16 +11,52 @@ const jobType = ref<JobType>("daily");
 const date = ref(today);
 const ticker = ref("SPY");
 const preDate = ref("");
+const reportType = ref("industry");
+const spiderStart = ref("");
+const spiderEnd = ref("");
+const spiderTest = ref(true);
+const spiderLimit = ref(2);
 const error = ref("");
 const starting = ref(false);
 const doneTip = ref("");
+const doneType = ref<JobType | "">("");
 
 const logPanel = ref<HTMLElement | null>(null);
 
 const typeCards = [
-  { value: "daily" as const, icon: "📄", label: "研报阅读", desc: "5 类研报 + 矛盾分析,产出 7 份报告" },
-  { value: "pre" as const, icon: "🧭", label: "板块轮动", desc: "周期/成长/防御三路预分析" },
-  { value: "trading" as const, icon: "📈", label: "交易分析", desc: "多 Agent 辩论决策(待 CLI 参数化)" },
+  {
+    value: "daily" as const,
+    icon: "📄",
+    label: "研报阅读",
+    desc: "5 类研报 + 矛盾分析,产出 7 份报告",
+  },
+  {
+    value: "pre" as const,
+    icon: "🧭",
+    label: "板块轮动",
+    desc: "周期/成长/防御三路预分析",
+  },
+  {
+    value: "spider" as const,
+    icon: "🕷",
+    label: "数据抓取",
+    desc: "东方财富研报爬虫,抓取券商研报数据",
+  },
+  {
+    value: "trading" as const,
+    icon: "📈",
+    label: "交易分析",
+    desc: "多 Agent 辩论决策(待 CLI 参数化)",
+  },
+];
+
+const reportTypeOptions = [
+  { value: "industry", label: "行业研报" },
+  { value: "stock", label: "个股研报" },
+  { value: "macro", label: "宏观研究" },
+  { value: "strategy", label: "策略报告" },
+  { value: "broker", label: "券商晨报" },
+  { value: "all", label: "全部" },
 ];
 
 const running = computed(() => store.running);
@@ -36,13 +72,17 @@ const statusMeta: Record<string, { label: string; cls: string }> = {
 const typeLabel: Record<string, string> = {
   daily: "研报阅读",
   pre: "板块轮动",
+  spider: "数据抓取",
   trading: "交易分析",
 };
 
 function paramsSummary(job: Job): string {
   const p = job.params ?? {};
   if (job.type === "daily") return p.date ?? "?";
-  if (job.type === "pre") return `${p.ticker ?? "?"}${p.date ? " · " + p.date : ""}`;
+  if (job.type === "pre")
+    return `${p.ticker ?? "?"}${p.date ? " · " + p.date : ""}`;
+  if (job.type === "spider")
+    return `${p.report_type ?? "?"}${p.test ? " · 测试" : ""}${p.start ? " · " + p.start : ""}`;
   return "—";
 }
 
@@ -63,10 +103,22 @@ async function start() {
   doneTip.value = "";
   starting.value = true;
   try {
-    const params: Record<string, string> =
-      jobType.value === "daily"
-        ? { date: date.value }
-        : { ticker: ticker.value, ...(preDate.value ? { date: preDate.value } : {}) };
+    let params: Record<string, string>;
+    if (jobType.value === "daily") {
+      params = { date: date.value };
+    } else if (jobType.value === "spider") {
+      params = {
+        report_type: reportType.value,
+        ...(spiderStart.value ? { start: spiderStart.value } : {}),
+        ...(spiderEnd.value ? { end: spiderEnd.value } : {}),
+        ...(spiderTest.value ? { test: "1", limit: String(spiderLimit.value) } : {}),
+      };
+    } else {
+      params = {
+        ticker: ticker.value,
+        ...(preDate.value ? { date: preDate.value } : {}),
+      };
+    }
     await store.start(jobType.value, params);
   } catch (e) {
     error.value = String(e);
@@ -88,12 +140,15 @@ async function showLog(job: Job) {
 watch(
   () => store.jobs,
   (jobs) => {
-    const finished = jobs.find((j) => j.status === "done" && doneTip.value !== j.id);
+    const finished = jobs.find(
+      (j) => j.status === "done" && doneTip.value !== j.id,
+    );
     if (finished && running.value === null) {
       doneTip.value = finished.id;
+      doneType.value = finished.type;
       setTimeout(() => {
         if (doneTip.value === finished.id) doneTip.value = "";
-      }, 15000);
+      }, 20000);
     }
   },
   { deep: true },
@@ -130,7 +185,10 @@ onBeforeUnmount(() => store.unsubscribe());
           v-for="c in typeCards"
           :key="c.value"
           class="type-card"
-          :class="{ active: jobType === c.value, disabled: c.value === 'trading' }"
+          :class="{
+            active: jobType === c.value,
+            disabled: c.value === 'trading',
+          }"
           :disabled="c.value === 'trading'"
           @click="jobType = c.value"
         >
@@ -155,9 +213,42 @@ onBeforeUnmount(() => store.unsubscribe());
           </label>
           <label class="field">
             <span class="field-label">日期(可选)</span>
-            <input v-model="preDate" class="input mono" placeholder="YYYY-MM-DD" />
+            <input
+              v-model="preDate"
+              class="input mono"
+              placeholder="YYYY-MM-DD"
+            />
           </label>
         </template>
+        <template v-else-if="jobType === 'spider'">
+          <label class="field">
+            <span class="field-label">研报类型</span>
+            <select v-model="reportType" class="select">
+              <option v-for="o in reportTypeOptions" :key="o.value" :value="o.value">
+                {{ o.label }}
+              </option>
+            </select>
+          </label>
+          <label class="field">
+            <span class="field-label">开始日期(可空)</span>
+            <input v-model="spiderStart" class="input mono" placeholder="YYYY-MM-DD" />
+          </label>
+          <label class="field">
+            <span class="field-label">结束日期(可空)</span>
+            <input v-model="spiderEnd" class="input mono" placeholder="YYYY-MM-DD" />
+          </label>
+        </template>
+      </div>
+
+      <div v-if="jobType === 'spider'" class="spider-extra">
+        <label class="check">
+          <input v-model="spiderTest" type="checkbox" />
+          测试模式(仅抓少量篇数,数据写入 report_data/test/,不污染正式数据)
+        </label>
+        <label v-if="spiderTest" class="field slim">
+          <span class="field-label">篇数</span>
+          <input v-model.number="spiderLimit" class="input mono" type="number" min="1" max="100" />
+        </label>
       </div>
 
       <div class="form-foot">
@@ -182,10 +273,14 @@ onBeforeUnmount(() => store.unsubscribe());
           </span>
           <span v-if="store.subscribing" class="dot running"></span>
         </h3>
-        <button v-if="running" class="btn" @click="store.cancel(running.id)">取消</button>
+        <button v-if="running" class="btn" @click="store.cancel(running.id)">
+          取消
+        </button>
       </div>
       <div ref="logPanel" class="log-panel mono">
-        <div v-for="(line, i) in store.logLines" :key="i" class="log-line">{{ line }}</div>
+        <div v-for="(line, i) in store.logLines" :key="i" class="log-line">
+          {{ line }}
+        </div>
         <div v-if="store.logLines.length === 0" class="dim">等待输出…</div>
       </div>
     </section>
@@ -228,8 +323,23 @@ onBeforeUnmount(() => store.unsubscribe());
 
     <Transition name="page">
       <div v-if="doneTip" class="card done-tip">
-        ✅ 任务完成!
-        <RouterLink to="/reports/daily" class="btn"> 去浏览报告 </RouterLink>
+        <span v-if="doneType === 'spider'">🕷 数据抓取完成!下一步:发起研报阅读</span>
+        <span v-else>✅ 任务完成!</span>
+        <RouterLink
+          v-if="doneType === 'spider'"
+          to="/jobs"
+          class="btn"
+          @click="jobType = 'daily'"
+        >
+          去发起研报阅读
+        </RouterLink>
+        <RouterLink
+          v-else
+          :to="doneType === 'pre' ? '/reports/pre' : '/reports/daily'"
+          class="btn"
+        >
+          去浏览报告
+        </RouterLink>
       </div>
     </Transition>
   </div>
@@ -270,7 +380,10 @@ onBeforeUnmount(() => store.unsubscribe());
   cursor: pointer;
   color: var(--text-1);
   position: relative;
-  transition: border-color 140ms ease-out, box-shadow 140ms ease-out, transform 140ms ease-out;
+  transition:
+    border-color 140ms ease-out,
+    box-shadow 140ms ease-out,
+    transform 140ms ease-out;
 }
 
 .type-card:hover:not(.disabled) {
@@ -318,6 +431,26 @@ onBeforeUnmount(() => store.unsubscribe());
   display: flex;
   gap: 10px;
   margin-bottom: 14px;
+}
+
+.spider-extra {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.field.slim {
+  flex: 0 0 90px;
 }
 
 .field {
