@@ -1,8 +1,14 @@
-"""Unit tests for pre_analyst agent node functions (mock LLM, pipeline pattern)."""
+"""Unit tests for pre_analyst agent node functions (mock LLM, pipeline pattern).
+
+The nodes build ``prompt | llm.bind_tools(tools)``, so the mock LLM must be
+callable (``mock.return_value``) and must yield a real ``AIMessage`` — nodes
+return it in ``{"messages": [...]}``, which LangGraph validates.
+"""
 
 from unittest.mock import MagicMock
 
 import pytest
+from langchain_core.messages import AIMessage
 
 from tradingagents.agents.pre_analyst import (
     create_cyclical_analyst,
@@ -26,15 +32,19 @@ def _base_state(**overrides) -> dict:
     return s
 
 
+def _mock_llm_returning(message: AIMessage) -> MagicMock:
+    """Mock whose ``bind_tools(...)`` is callable and returns ``message``."""
+    mock_llm = MagicMock()
+    mock_llm.bind_tools.return_value = MagicMock(return_value=message)
+    return mock_llm
+
+
 @pytest.mark.unit
 class TestCyclicalAnalyst:
     def test_returns_cyclical_report_when_no_tool_calls(self):
-        mock_msg = MagicMock()
-        mock_msg.tool_calls = []
-        mock_msg.content = "Cyclical: Energy and financials are poised to outperform."
-
-        mock_llm = MagicMock()
-        mock_llm.bind_tools.return_value.invoke.return_value = mock_msg
+        mock_llm = _mock_llm_returning(
+            AIMessage(content="Cyclical: Energy and financials are poised to outperform.")
+        )
 
         node = create_cyclical_analyst(mock_llm)
         result = node(_base_state())
@@ -44,12 +54,11 @@ class TestCyclicalAnalyst:
         assert "messages" in result
 
     def test_returns_empty_report_when_tool_calls_present(self):
-        mock_msg = MagicMock()
-        mock_msg.tool_calls = [{"name": "get_global_news"}]
-        mock_msg.content = ""
-
-        mock_llm = MagicMock()
-        mock_llm.bind_tools.return_value.invoke.return_value = mock_msg
+        mock_llm = _mock_llm_returning(
+            AIMessage(content="", tool_calls=[
+                {"name": "get_global_news", "args": {}, "id": "call_1"},
+            ])
+        )
 
         node = create_cyclical_analyst(mock_llm)
         result = node(_base_state())
@@ -61,12 +70,9 @@ class TestCyclicalAnalyst:
 @pytest.mark.unit
 class TestGrowthAnalyst:
     def test_returns_growth_report_when_no_tool_calls(self):
-        mock_msg = MagicMock()
-        mock_msg.tool_calls = []
-        mock_msg.content = "Growth: AI and clean energy are the future."
-
-        mock_llm = MagicMock()
-        mock_llm.bind_tools.return_value.invoke.return_value = mock_msg
+        mock_llm = _mock_llm_returning(
+            AIMessage(content="Growth: AI and clean energy are the future.")
+        )
 
         node = create_growth_analyst(mock_llm)
         result = node(_base_state())
@@ -78,12 +84,9 @@ class TestGrowthAnalyst:
 @pytest.mark.unit
 class TestDefensiveAnalyst:
     def test_returns_defensive_report_when_no_tool_calls(self):
-        mock_msg = MagicMock()
-        mock_msg.tool_calls = []
-        mock_msg.content = "Defensive: Staples and utilities offer safety."
-
-        mock_llm = MagicMock()
-        mock_llm.bind_tools.return_value.invoke.return_value = mock_msg
+        mock_llm = _mock_llm_returning(
+            AIMessage(content="Defensive: Staples and utilities offer safety.")
+        )
 
         node = create_defensive_analyst(mock_llm)
         result = node(_base_state())
@@ -95,12 +98,9 @@ class TestDefensiveAnalyst:
 @pytest.mark.unit
 class TestSectorManager:
     def test_returns_sector_recommendation(self):
-        mock_msg = MagicMock()
-        mock_msg.tool_calls = []
-        mock_msg.content = "## Sector Recommendation\n\n### Preferred Sectors\n..."
-
-        mock_llm = MagicMock()
-        mock_llm.bind_tools.return_value.invoke.return_value = mock_msg
+        mock_llm = _mock_llm_returning(
+            AIMessage(content="## Sector Recommendation\n\n### Preferred Sectors\n...")
+        )
 
         node = create_sector_manager(mock_llm)
         result = node(_base_state(
