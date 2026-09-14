@@ -479,15 +479,15 @@ class ResearchReportState(MessagesState):
 
 #### 7.3.1 问题诊断
 
-| # | 问题 | 根因 | 位置 |
-|---|------|------|------|
-| 1 | 每条矛盾重复出现 2 遍 | `list_open()` 未排除当日新增，与 `new_since(day)` 结果重叠（新增 11 条全部在"持续"区再次出现） | `contradiction_store.py` |
-| 2 | 同主题多条爆炸且无序 | 矛盾 id 含券商对，同一 subject 下多条（如"美联储利率/政策"4 条）；`ORDER BY last_seen DESC` 使新旧矛盾混排，无时间线 | `contradiction_store.py` / `contradiction_report.py` |
-| 3 | 无概览/导航，上来就是条目墙 | 报告顶部只有日期，无 Top 关注、无按类型/方向/持续天数的分布统计 | `contradiction_report.py` |
-| 4 | 洞察块冗长且雷同 | 每条矛盾 2 行 claim + 4 行洞察（每行 50~100 字）；LLM 输出同质化（"时间尺度"型点评几乎雷同、tilt 清一色"不确定"），信息密度低但占版面最大 | insight 节点 prompt |
-| 5 | 格式单调、无视觉层次 | 全部嵌套无序列表；`opinion/direct/cross` 英文枚举裸露；claim 原文硬截断 60 字导致断句（"……收益率下行将触发空头回补并放"） | `contradiction_report.py` |
-| 6 | "今日解决"常驻空区块 | 已解决为 0 时仍渲染标题与空内容 | `contradiction_report.py` |
-| 7 | 统计过于单薄 | 仅一行累计/未决/已解决，无按 kind/cause_type/持续天数的分布 | `contradiction_report.py` |
+| #   | 问题                        | 根因                                                                                                                                      | 位置                                                 |
+| --- | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| 1   | 每条矛盾重复出现 2 遍       | `list_open()` 未排除当日新增，与 `new_since(day)` 结果重叠（新增 11 条全部在"持续"区再次出现）                                            | `contradiction_store.py`                             |
+| 2   | 同主题多条爆炸且无序        | 矛盾 id 含券商对，同一 subject 下多条（如"美联储利率/政策"4 条）；`ORDER BY last_seen DESC` 使新旧矛盾混排，无时间线                      | `contradiction_store.py` / `contradiction_report.py` |
+| 3   | 无概览/导航，上来就是条目墙 | 报告顶部只有日期，无 Top 关注、无按类型/方向/持续天数的分布统计                                                                           | `contradiction_report.py`                            |
+| 4   | 洞察块冗长且雷同            | 每条矛盾 2 行 claim + 4 行洞察（每行 50~100 字）；LLM 输出同质化（"时间尺度"型点评几乎雷同、tilt 清一色"不确定"），信息密度低但占版面最大 | insight 节点 prompt                                  |
+| 5   | 格式单调、无视觉层次        | 全部嵌套无序列表；`opinion/direct/cross` 英文枚举裸露；claim 原文硬截断 60 字导致断句（"……收益率下行将触发空头回补并放"）                 | `contradiction_report.py`                            |
+| 6   | "今日解决"常驻空区块        | 已解决为 0 时仍渲染标题与空内容                                                                                                           | `contradiction_report.py`                            |
+| 7   | 统计过于单薄                | 仅一行累计/未决/已解决，无按 kind/cause_type/持续天数的分布                                                                               | `contradiction_report.py`                            |
 
 #### 7.3.2 改进方案（按性价比排序）
 
