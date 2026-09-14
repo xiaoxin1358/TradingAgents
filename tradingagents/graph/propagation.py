@@ -2,9 +2,6 @@
 
 from typing import Any
 
-from tradingagents.agents.pre_analyst.sector_debate_state import (
-    SectorDebateState,
-)
 from tradingagents.agents.utils.agent_states import (
     InvestDebateState,
     RiskDebateState,
@@ -41,18 +38,9 @@ class Propagator:
             "instrument_context": instrument_context,
             "trade_date": str(trade_date),
             "past_context": past_context,
-            "sector_debate_state": SectorDebateState(
-                {
-                    "cyclical_history": "",
-                    "growth_history": "",
-                    "defensive_history": "",
-                    "history": "",
-                    "current_response": "",
-                    "latest_speaker": "",
-                    "judge_decision": "",
-                    "count": 0,
-                }
-            ),
+            "cyclical_report": "",
+            "growth_report": "",
+            "defensive_report": "",
             "sector_recommendation": "",
             "investment_debate_state": InvestDebateState(
                 {

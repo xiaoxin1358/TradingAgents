@@ -99,3 +99,92 @@ def write_report_tree(final_state: dict, ticker: str, save_path) -> Path:
     header = f"# Trading Analysis Report: {ticker}\n\nGenerated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
     (save_path / "complete_report.md").write_text(header + "\n\n".join(sections), encoding="utf-8")
     return save_path / "complete_report.md"
+
+
+# ── Pre-Analyst pipeline output ──
+
+def write_sector_report(result: dict, save_path) -> Path:
+    """Save a pre-analyst pipeline result to ``save_path``.
+
+    Writes per-analyst markdown (cyclical, growth, defensive, sector manager)
+    and a consolidated ``complete_report.md``.  ``result`` is a dict with
+    ``cyclical_report``, ``growth_report``, ``defensive_report``, and
+    ``sector_recommendation`` keys.
+    """
+    save_path = Path(save_path)
+    save_path.mkdir(parents=True, exist_ok=True)
+
+    # Per-analyst files from dedicated report fields
+    analyst_files = [
+        ("cyclical_report", "cyclical_analyst.md"),
+        ("growth_report", "growth_analyst.md"),
+        ("defensive_report", "defensive_analyst.md"),
+    ]
+
+    for key, filename in analyst_files:
+        content = result.get(key, "")
+        if content:
+            (save_path / filename).write_text(content, encoding="utf-8")
+
+    # Sector Manager recommendation
+    recommendation = result.get("sector_recommendation", "")
+    if recommendation:
+        (save_path / "sector_manager.md").write_text(recommendation, encoding="utf-8")
+
+    # Consolidated report
+    header = (
+        f"# Pre-Analyst 行业分析报告\n\n"
+        f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+    )
+    # Build consolidated: each report section then the final recommendation
+    sections = []
+    for key, title in (
+        ("cyclical_report", "## Cyclical Analyst (宏观周期视角)"),
+        ("growth_report", "## Growth Analyst (成长创新视角)"),
+        ("defensive_report", "## Defensive Analyst (防御保值视角)"),
+    ):
+        content = result.get(key, "")
+        if content:
+            sections.append(f"{title}\n\n{content}")
+    if recommendation:
+        sections.append(f"## Sector Manager 综合建议\n\n{recommendation}")
+
+    (save_path / "complete_report.md").write_text(
+        header + "\n\n".join(sections), encoding="utf-8"
+    )
+
+    return save_path / "complete_report.md"
+
+
+def _extract_speaker_section(debate_text: str, prefix: str) -> str:
+    """Return the block of text from ``debate_text`` starting with ``prefix``.
+
+    .. deprecated::
+        Pre-analyst was refactored from debate to pipeline pattern (v0.3.3).
+        This helper is kept for reading legacy debate-format reports but is
+        no longer used by the active code path.
+    """
+    if not debate_text or not prefix:
+        return ""
+
+    lines = debate_text.split("\n")
+    start = None
+    for i, line in enumerate(lines):
+        if line.strip().startswith(prefix):
+            start = i
+            break
+    if start is None:
+        return ""
+
+    collected = []
+    for line in lines[start:]:
+        stripped = line.strip()
+        if any(
+            stripped.startswith(p)
+            for p in ("Cyclical Analyst:", "Growth Analyst:", "Defensive Analyst:")
+            if p != prefix
+        ):
+            break
+        collected.append(line)
+
+    return "\n".join(collected).strip()

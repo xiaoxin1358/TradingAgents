@@ -12,7 +12,6 @@ from .pre_analyst import (
     create_defensive_analyst,
     create_growth_analyst,
     create_sector_manager,
-    SectorDebateState,
 )
 from .researchers.bear_researcher import create_bear_researcher
 from .researchers.bull_researcher import create_bull_researcher
@@ -25,7 +24,6 @@ from .utils.agent_utils import create_msg_delete
 
 __all__ = [
     "AgentState",
-    "SectorDebateState",
     "create_msg_delete",
     "InvestDebateState",
     "RiskDebateState",

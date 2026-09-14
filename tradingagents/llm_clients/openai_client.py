@@ -278,7 +278,12 @@ class OpenAIClient(BaseLLMClient):
     def get_llm(self) -> Any:
         """Return a configured ChatOpenAI instance, driven by the provider registry."""
         self.warn_if_unknown_model()
-        llm_kwargs = {"model": self.model}
+        llm_kwargs: dict[str, Any] = {"model": self.model}
+        # ── Default timeout for all OpenAI-compatible LLM calls ──
+        # chain.invoke(timeout=N) is NOT forwarded by LangChain runnable
+        # chains — the timeout must live on the ChatOpenAI instance.
+        # ChatOpenAI(timeout=N) → openai.OpenAI(timeout=N) → httpx.Client(timeout=N)
+        llm_kwargs.setdefault("timeout", 120)
         spec = OPENAI_COMPATIBLE_PROVIDERS.get(self.provider)
         chat_cls = NormalizedChatOpenAI
 
@@ -327,9 +332,8 @@ class OpenAIClient(BaseLLMClient):
         for key in _PASSTHROUGH_KWARGS:
             if key not in self.kwargs:
                 continue
-            if key == "reasoning_effort":
-                if not _supports_reasoning_effort(self.model) and self.provider != "deepseek":
-                    continue
+            if key == "reasoning_effort" and not _supports_reasoning_effort(self.model) and self.provider != "deepseek":
+                continue
             llm_kwargs[key] = self.kwargs[key]
 
         # The subclass (provider quirks) comes from the registry spec.

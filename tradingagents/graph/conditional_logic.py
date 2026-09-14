@@ -49,6 +49,38 @@ class ConditionalLogic:
             return "tools_fundamentals"
         return "Msg Clear Fundamentals"
 
+    def should_continue_cyclical(self, state: AgentState) -> str:
+        """Determine if cyclical pre-analyst tool round should continue."""
+        messages = state["messages"]
+        last_message = messages[-1]
+        if last_message.tool_calls:
+            return "tools_cyclical"
+        return "Msg Clear Cyclical"
+
+    def should_continue_growth(self, state: AgentState) -> str:
+        """Determine if growth pre-analyst tool round should continue."""
+        messages = state["messages"]
+        last_message = messages[-1]
+        if last_message.tool_calls:
+            return "tools_growth"
+        return "Msg Clear Growth"
+
+    def should_continue_defensive(self, state: AgentState) -> str:
+        """Determine if defensive pre-analyst tool round should continue."""
+        messages = state["messages"]
+        last_message = messages[-1]
+        if last_message.tool_calls:
+            return "tools_defensive"
+        return "Msg Clear Defensive"
+
+    def should_continue_sector_manager(self, state: AgentState) -> str:
+        """Determine if sector-manager pre-analyst tool round should continue."""
+        messages = state["messages"]
+        last_message = messages[-1]
+        if last_message.tool_calls:
+            return "tools_sector_manager"
+        return "Msg Clear Sector"
+
     def should_continue_debate(self, state: AgentState) -> str:
         """Determine if debate should continue."""
 
@@ -71,24 +103,3 @@ class ConditionalLogic:
         if state["risk_debate_state"]["latest_speaker"].startswith("Conservative"):
             return "Neutral Analyst"
         return "Aggressive Analyst"
-
-    def should_continue_sector_debate(self, state: AgentState) -> str:
-        """Determine if the pre-analyst sector debate should continue.
-
-        Three analysts (cyclical → growth → defensive) take turns in a
-        fixed rotation.  When ``count >= 3 * max_rounds`` the debate ends
-        and flow moves to the Sector Manager.
-        """
-        sector_state = state.get("sector_debate_state", {})
-        count = sector_state.get("count", 0)
-
-        if count >= 3 * self.max_risk_discuss_rounds:
-            return "Sector Manager"
-
-        latest = sector_state.get("latest_speaker", "")
-        if latest == "cyclical":
-            return "Growth Analyst"
-        if latest == "growth":
-            return "Defensive Analyst"
-        # Default / defensive just spoke → back to cyclical
-        return "Cyclical Analyst"

@@ -213,5 +213,3 @@ def create_msg_delete():
 
     return delete_messages
 
-
-

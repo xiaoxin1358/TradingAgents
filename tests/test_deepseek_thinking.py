@@ -6,11 +6,9 @@ Covers three concerns:
 3. ``_get_request_payload`` injects ``extra_body.thinking``.
 """
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
-from openai.types.chat import ChatCompletion, ChatCompletionMessage
-from openai.types.chat.chat_completion import Choice
 
 
 @pytest.mark.unit

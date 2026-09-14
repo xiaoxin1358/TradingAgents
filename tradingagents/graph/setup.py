@@ -134,37 +134,40 @@ class GraphSetup:
 
         # Define edges
         if enable_pre_analyst:
-            # ── Pre-Analyst routing ──────────────────────────────────
+            # ── Register pre-analyst ToolNodes + Msg Clear ──────────
+            workflow.add_node("tools_cyclical", self.tool_nodes["cyclical"])
+            workflow.add_node("tools_growth", self.tool_nodes["growth"])
+            workflow.add_node("tools_defensive", self.tool_nodes["defensive"])
+            workflow.add_node("tools_sector_manager", self.tool_nodes["sector_manager"])
+            workflow.add_node("Msg Clear Cyclical", create_msg_delete())
+            workflow.add_node("Msg Clear Growth", create_msg_delete())
+            workflow.add_node("Msg Clear Defensive", create_msg_delete())
+            workflow.add_node("Msg Clear Sector", create_msg_delete())
+
+            first_pipeline_node = plan.specs[0].agent_node if plan.specs else "Bull Researcher"
+
+            # ── Linear pipeline: Cyclical → Growth → Defensive → Sector Manager → pipeline ──
+            # Each analyst: agent ⟲ tools → Msg Clear → next analyst (fixed edges)
+
             workflow.add_edge(START, "Cyclical Analyst")
-            workflow.add_conditional_edges(
-                "Cyclical Analyst",
-                self.conditional_logic.should_continue_sector_debate,
-                {
-                    "Growth Analyst": "Growth Analyst",
-                    "Defensive Analyst": "Defensive Analyst",
-                    "Sector Manager": "Sector Manager",
-                },
-            )
-            workflow.add_conditional_edges(
-                "Growth Analyst",
-                self.conditional_logic.should_continue_sector_debate,
-                {
-                    "Cyclical Analyst": "Cyclical Analyst",
-                    "Defensive Analyst": "Defensive Analyst",
-                    "Sector Manager": "Sector Manager",
-                },
-            )
-            workflow.add_conditional_edges(
-                "Defensive Analyst",
-                self.conditional_logic.should_continue_sector_debate,
-                {
-                    "Cyclical Analyst": "Cyclical Analyst",
-                    "Growth Analyst": "Growth Analyst",
-                    "Sector Manager": "Sector Manager",
-                },
-            )
-            # After sector debate → enter the per-ticker analyst pipeline
-            workflow.add_edge("Sector Manager", plan.specs[0].agent_node)
+
+            for analyst_node, tool_node, clear_node, next_analyst, route_method in (
+                ("Cyclical Analyst", "tools_cyclical", "Msg Clear Cyclical",
+                 "Growth Analyst", self.conditional_logic.should_continue_cyclical),
+                ("Growth Analyst", "tools_growth", "Msg Clear Growth",
+                 "Defensive Analyst", self.conditional_logic.should_continue_growth),
+                ("Defensive Analyst", "tools_defensive", "Msg Clear Defensive",
+                 "Sector Manager", self.conditional_logic.should_continue_defensive),
+                ("Sector Manager", "tools_sector_manager", "Msg Clear Sector",
+                 first_pipeline_node, self.conditional_logic.should_continue_sector_manager),
+            ):
+                workflow.add_conditional_edges(
+                    analyst_node,
+                    route_method,
+                    [tool_node, clear_node],
+                )
+                workflow.add_edge(tool_node, analyst_node)
+                workflow.add_edge(clear_node, next_analyst)
         else:
             # Start with the first analyst (original behaviour)
             workflow.add_edge(START, plan.specs[0].agent_node)

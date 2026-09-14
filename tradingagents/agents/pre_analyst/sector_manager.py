@@ -1,4 +1,4 @@
-"""Sector Manager — reads the three-way sector debate and delivers a
+"""Sector Manager — reads the three pre-analyst reports and delivers a
 structured sector-recommendation for downstream agents.
 
 Uses the deep-thinking LLM (same pattern as Research Manager and Portfolio
@@ -8,22 +8,33 @@ recommended sectors, conviction level, rationale, and risk caveats.
 
 from __future__ import annotations
 
-from tradingagents.agents.utils.agent_utils import get_language_instruction
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+
+from tradingagents.agents.utils.agent_utils import (
+    get_global_news,
+    get_language_instruction,
+    get_prediction_markets,
+)
 
 
 def create_sector_manager(llm):
-    """Return a node that judges the sector debate and issues a recommendation."""
+    """Return a node that synthesises the three pre-analyst reports into a
+    sector recommendation."""
 
     def sector_manager_node(state) -> dict:
-        sector_debate = state.get("sector_debate_state", {})
-        history = sector_debate.get("history", "")
-        trade_date = state.get("trade_date", "today")
+        current_date = state["trade_date"]
 
-        prompt = f"""You are the **Sector Manager**, responsible for evaluating
-a three-way debate among sector analysts and delivering a clear, actionable
+        cyclical_report = state.get("cyclical_report", "")
+        growth_report = state.get("growth_report", "")
+        defensive_report = state.get("defensive_report", "")
+
+        tools = [get_global_news, get_prediction_markets]
+
+        system_message = f"""You are the **Sector Manager**, responsible for synthesising
+three independent sector-analysis reports and delivering a clear, actionable
 sector recommendation for the investment team.
 
-The three debaters represent different investment philosophies:
+The three analysts represent different investment philosophies:
 - **Cyclical Analyst** — favours macro-sensitive sectors (industrials, energy,
   financials, materials) based on the economic cycle.
 - **Growth Analyst** — favours innovation-driven sectors (technology, AI,
@@ -35,12 +46,27 @@ The three debaters represent different investment philosophies:
 
 **Your Task:**
 
-1. Read the full debate transcript below.
-2. Evaluate the strength of each debater's arguments — their evidence,
-   logic, and ability to rebut opponents.
-3. Decide which perspective (or blend of perspectives) is most compelling
-   for the current date: **{trade_date}**.
-4. Issue a structured recommendation covering:
+1. Use the available tools to verify any specific data points or supplement
+   the reports with additional context.  If a tool returns an error or
+   DATA_UNAVAILABLE, accept it and proceed.
+2. Read the three reports below carefully.
+3. Evaluate each analyst's evidence, logic, and risk assessment.
+4. Decide which perspective (or blend of perspectives) is most compelling
+   for the current date: **{current_date}**.
+5. Issue a structured recommendation.
+
+---
+
+**Three Analyst Reports:**
+
+### Cyclical Analyst Report
+{cyclical_report}
+
+### Growth Analyst Report
+{growth_report}
+
+### Defensive Analyst Report
+{defensive_report}
 
 ---
 
@@ -65,30 +91,39 @@ The three debaters represent different investment philosophies:
 
 ### Summary
 - 2-3 sentence executive summary for the Portfolio Manager
-
----
-
-**Debate Transcript:**
-{history}
 """ + get_language_instruction()
 
-        response = llm.invoke(prompt)
-        decision = response.content
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                (
+                    "system",
+                    "You are a helpful AI assistant, collaborating with other assistants."
+                    " Use the provided tools to progress towards answering the question."
+                    " If you are unable to fully answer, that's OK; another assistant with different tools"
+                    " will help where you left off. Execute what you can to make progress."
+                    " You have access to the following tools: {tool_names}."
+                    " Today's date is {trade_date}; treat it as 'now' for all analysis and tool-call date ranges."
+                    "\n{system_message}",
+                ),
+                MessagesPlaceholder(variable_name="messages"),
+            ]
+        )
 
-        new_debate_state = {
-            "history": history,
-            "cyclical_history": sector_debate.get("cyclical_history", ""),
-            "growth_history": sector_debate.get("growth_history", ""),
-            "defensive_history": sector_debate.get("defensive_history", ""),
-            "current_response": decision,
-            "latest_speaker": "sector_manager",
-            "judge_decision": decision,
-            "count": sector_debate.get("count", 0),
-        }
+        prompt = prompt.partial(system_message=system_message)
+        prompt = prompt.partial(tool_names=", ".join([tool.name for tool in tools]))
+        prompt = prompt.partial(trade_date=current_date)
+
+        chain = prompt | llm.bind_tools(tools)
+
+        result = chain.invoke(state["messages"])
+
+        recommendation = ""
+        if len(result.tool_calls) == 0:
+            recommendation = result.content
 
         return {
-            "sector_debate_state": new_debate_state,
-            "sector_recommendation": decision,
+            "messages": [result],
+            "sector_recommendation": recommendation,
         }
 
     return sector_manager_node

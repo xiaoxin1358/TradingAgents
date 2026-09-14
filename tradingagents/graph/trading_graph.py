@@ -146,7 +146,8 @@ class TradingAgentsGraph:
         self.selected_analysts = tuple(selected_analysts)
 
         # Set up the graph: keep the workflow for recompilation with a checkpointer.
-        self.workflow = self.graph_setup.setup_graph(selected_analysts)
+        enable_pre_analyst = self.config.get("enable_pre_analyst", False)
+        self.workflow = self.graph_setup.setup_graph(selected_analysts, enable_pre_analyst=enable_pre_analyst)
         self.graph = self.workflow.compile()
         self._checkpointer_ctx = None
 
@@ -230,6 +231,11 @@ class TradingAgentsGraph:
                     get_income_statement,
                 ]
             ),
+            # ── Pre-Analyst pipeline tool nodes ──────────────────
+            "cyclical": ToolNode([get_global_news, get_macro_indicators]),
+            "growth": ToolNode([get_global_news, get_prediction_markets]),
+            "defensive": ToolNode([get_global_news, get_macro_indicators]),
+            "sector_manager": ToolNode([get_global_news, get_prediction_markets]),
         }
 
     def _resolve_benchmark(self, ticker: str) -> str:

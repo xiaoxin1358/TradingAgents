@@ -1,4 +1,4 @@
-"""Growth-perspective pre-analyst — argues for innovation-driven,
+"""Growth-perspective pre-analyst — analyses innovation-driven,
 structural-growth sectors.
 
 Roles: technology, AI, clean energy, biotech, and other sectors where
@@ -7,28 +7,31 @@ secular trends outweigh short-term macro fluctuations.
 
 from __future__ import annotations
 
-from tradingagents.agents.utils.agent_utils import get_language_instruction
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+
+from tradingagents.agents.utils.agent_utils import (
+    get_global_news,
+    get_language_instruction,
+    get_prediction_markets,
+)
 
 
 def create_growth_analyst(llm):
-    """Return a node that presents the growth-side case in a sector debate."""
+    """Return a node that analyses sectors from a growth / innovation standpoint."""
 
     def growth_node(state) -> dict:
-        sector_debate = state.get("sector_debate_state", {})
+        current_date = state["trade_date"]
 
-        history = sector_debate.get("history", "")
-        growth_history = sector_debate.get("growth_history", "")
-        current_response = sector_debate.get("current_response", "")
-        trade_date = state.get("trade_date", "today")
+        tools = [get_global_news, get_prediction_markets]
 
-        prompt = f"""You are a **Growth-Perspective Sector Analyst**.  Your
+        system_message = f"""You are a **Growth-Perspective Sector Analyst**.  Your
 investment philosophy centres on **structural, secular growth trends** that
 transcend short-term economic fluctuations.  You believe innovation —
 artificial intelligence, clean energy, biotechnology, cloud computing,
 semiconductors — creates durable competitive advantages that the market
 consistently under-prices.
 
-Your job is to argue which sectors / industries are poised to **outperform**
+Your job is to analyse which sectors / industries are poised to **outperform**
 from a growth standpoint:
 
 - **Technology** — AI infrastructure, semiconductors, cloud, SaaS
@@ -36,7 +39,7 @@ from a growth standpoint:
 - **Healthcare Innovation** — biotech, precision medicine, gene editing
 - **Next-gen Consumer** — e-commerce, digital payments, streaming
 
-Key points to emphasise:
+Key points to cover in your report:
 
 - **Secular tailwinds** — Which technologies are at inflection points?
   Are we in the early innings of an AI capex cycle?  Is there regulatory
@@ -45,36 +48,51 @@ Key points to emphasise:
   is it growing?  Why do these trends make cyclical concerns secondary?
 - **Earnings power** — Revenue growth rates, margin expansion potential,
   operating leverage as these sectors scale.
-- **Rebuttal** — Address the latest argument from the cyclical or defensive
-  analyst head-on.  Explain why their macro-worry or valuation concern misses
-  the bigger structural picture.  Show how growth sectors historically
-  compound through cycles.
+- **Risks** — Valuation risk, regulatory risk, competitive disruption.
 
-Be specific: name sectors and sub-industries.  Debate energetically, don't
-just list facts.
+Be specific: name sectors and sub-industries.  Produce a structured,
+standalone report.
 
-Context:
-- Trade date: {trade_date}
-- Full debate history so far: {history}
-- Latest opponent argument you must address: {current_response}
+**Instructions** — Use the available tools to gather real data (global news,
+prediction-market probabilities) BEFORE writing your report.  For
+get_prediction_markets, pass short topic keywords (e.g. 'Fed rate cut', 'AI',
+'recession').  For get_global_news, pass curr_date='{current_date}'.
+If any tool returns an error or DATA_UNAVAILABLE, accept it and proceed.
 
-Your own previous arguments (for continuity): {growth_history}
+Trade date: {current_date}
 """ + get_language_instruction()
 
-        response = llm.invoke(prompt)
-        argument = f"Growth Analyst: {response.content}"
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                (
+                    "system",
+                    "You are a helpful AI assistant, collaborating with other assistants."
+                    " Use the provided tools to progress towards answering the question."
+                    " If you are unable to fully answer, that's OK; another assistant with different tools"
+                    " will help where you left off. Execute what you can to make progress."
+                    " You have access to the following tools: {tool_names}."
+                    " Today's date is {trade_date}; treat it as 'now' for all analysis and tool-call date ranges."
+                    "\n{system_message}",
+                ),
+                MessagesPlaceholder(variable_name="messages"),
+            ]
+        )
 
-        new_debate_state = {
-            "history": history + "\n" + argument,
-            "cyclical_history": sector_debate.get("cyclical_history", ""),
-            "growth_history": growth_history + "\n" + argument,
-            "defensive_history": sector_debate.get("defensive_history", ""),
-            "current_response": argument,
-            "latest_speaker": "growth",
-            "judge_decision": sector_debate.get("judge_decision", ""),
-            "count": sector_debate.get("count", 0) + 1,
+        prompt = prompt.partial(system_message=system_message)
+        prompt = prompt.partial(tool_names=", ".join([tool.name for tool in tools]))
+        prompt = prompt.partial(trade_date=current_date)
+
+        chain = prompt | llm.bind_tools(tools)
+
+        result = chain.invoke(state["messages"])
+
+        report = ""
+        if len(result.tool_calls) == 0:
+            report = result.content
+
+        return {
+            "messages": [result],
+            "growth_report": report,
         }
-
-        return {"sector_debate_state": new_debate_state}
 
     return growth_node

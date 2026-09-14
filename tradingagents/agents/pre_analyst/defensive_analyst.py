@@ -1,4 +1,4 @@
-"""Defensive-perspective pre-analyst — argues for capital-preservation and
+"""Defensive-perspective pre-analyst — analyses capital-preservation and
 low-volatility sectors.
 
 Roles: consumer staples, utilities, healthcare services, real estate, and
@@ -7,28 +7,31 @@ other sectors that provide downside protection when macro risks are elevated.
 
 from __future__ import annotations
 
-from tradingagents.agents.utils.agent_utils import get_language_instruction
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+
+from tradingagents.agents.utils.agent_utils import (
+    get_global_news,
+    get_language_instruction,
+    get_macro_indicators,
+)
 
 
 def create_defensive_analyst(llm):
-    """Return a node that presents the defensive-side case in a sector debate."""
+    """Return a node that analyses sectors from a defensive / risk-management standpoint."""
 
     def defensive_node(state) -> dict:
-        sector_debate = state.get("sector_debate_state", {})
+        current_date = state["trade_date"]
 
-        history = sector_debate.get("history", "")
-        defensive_history = sector_debate.get("defensive_history", "")
-        current_response = sector_debate.get("current_response", "")
-        trade_date = state.get("trade_date", "today")
+        tools = [get_global_news, get_macro_indicators]
 
-        prompt = f"""You are a **Defensive-Perspective Sector Analyst**.  Your
+        system_message = f"""You are a **Defensive-Perspective Sector Analyst**.  Your
 investment philosophy prioritises **capital preservation, steady cash flows,
 and downside protection**.  You believe that when uncertainty is high —
 whether from monetary policy, geopolitics, or market valuations — the
 smartest allocation is toward sectors that hold up when everything else
 sells off.
 
-Your job is to argue which sectors / industries offer the best **risk-adjusted
+Your job is to analyse which sectors / industries offer the best **risk-adjusted
 returns with limited downside**:
 
 - **Consumer Staples** — food, beverages, household products
@@ -37,7 +40,7 @@ returns with limited downside**:
 - **Real Estate (selected)** — data centres, healthcare REITs
 - **Dividend Aristocrats** across sectors
 
-Key points to emphasise:
+Key points to cover in your report:
 
 - **Risk assessment** — What macro or market risks are being under-priced?
   Is the VIX too complacent?  Are credit spreads widening?
@@ -46,36 +49,53 @@ Key points to emphasise:
 - **Downside maths** — What is the potential drawdown in cyclical or growth
   sectors if the macro backdrop deteriorates?  How much could defensive
   sectors save in that scenario?
-- **Rebuttal** — Challenge the cyclical analyst's macro optimism and the
-  growth analyst's valuation assumptions.  Point out historical precedents
-  where defensives outperformed during similar conditions.  Argue that
-  "this time is different" is the most expensive phrase in investing.
+- **Opportunities** — When might defensives be overlooked and undervalued?
 
-Be specific: name sectors, industries, and yield/spread metrics.  Debate
-with conviction — your role is to be the voice of caution.
+Be specific: name sectors, industries, and yield/spread metrics.
+Produce a structured, standalone report.
 
-Context:
-- Trade date: {trade_date}
-- Full debate history so far: {history}
-- Latest opponent argument you must address: {current_response}
+**Instructions** — Use the available tools to gather real data (macro
+indicators like VIX and Treasury yields, global news) BEFORE writing your
+report.  For get_macro_indicators, pass ONLY exact aliases: cpi, core_pce,
+unemployment, fed_funds_rate, 10y_treasury, yield_curve, real_gdp, vix,
+dollar_index, consumer_sentiment.  For get_global_news, pass
+curr_date='{current_date}'.  If any tool returns an error or DATA_UNAVAILABLE,
+accept it and proceed.
 
-Your own previous arguments (for continuity): {defensive_history}
+Trade date: {current_date}
 """ + get_language_instruction()
 
-        response = llm.invoke(prompt)
-        argument = f"Defensive Analyst: {response.content}"
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                (
+                    "system",
+                    "You are a helpful AI assistant, collaborating with other assistants."
+                    " Use the provided tools to progress towards answering the question."
+                    " If you are unable to fully answer, that's OK; another assistant with different tools"
+                    " will help where you left off. Execute what you can to make progress."
+                    " You have access to the following tools: {tool_names}."
+                    " Today's date is {trade_date}; treat it as 'now' for all analysis and tool-call date ranges."
+                    "\n{system_message}",
+                ),
+                MessagesPlaceholder(variable_name="messages"),
+            ]
+        )
 
-        new_debate_state = {
-            "history": history + "\n" + argument,
-            "cyclical_history": sector_debate.get("cyclical_history", ""),
-            "growth_history": sector_debate.get("growth_history", ""),
-            "defensive_history": defensive_history + "\n" + argument,
-            "current_response": argument,
-            "latest_speaker": "defensive",
-            "judge_decision": sector_debate.get("judge_decision", ""),
-            "count": sector_debate.get("count", 0) + 1,
+        prompt = prompt.partial(system_message=system_message)
+        prompt = prompt.partial(tool_names=", ".join([tool.name for tool in tools]))
+        prompt = prompt.partial(trade_date=current_date)
+
+        chain = prompt | llm.bind_tools(tools)
+
+        result = chain.invoke(state["messages"])
+
+        report = ""
+        if len(result.tool_calls) == 0:
+            report = result.content
+
+        return {
+            "messages": [result],
+            "defensive_report": report,
         }
-
-        return {"sector_debate_state": new_debate_state}
 
     return defensive_node

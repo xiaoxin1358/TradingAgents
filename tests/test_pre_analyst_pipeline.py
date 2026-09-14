@@ -1,7 +1,7 @@
-"""Integration tests for the pre_analyst standalone pipeline.
+"""Integration tests for the pre_analyst linear pipeline.
 
 Uses a mock LLM so no API key is required — we only verify that the graph
-compiles and the nodes execute in the correct order.
+compiles and the nodes execute in the correct linear order.
 """
 
 from unittest.mock import MagicMock
@@ -10,7 +10,6 @@ import pytest
 from langgraph.graph import END, START, StateGraph
 
 from tradingagents.agents.pre_analyst import (
-    SectorDebateState,
     create_cyclical_analyst,
     create_defensive_analyst,
     create_growth_analyst,
@@ -19,21 +18,33 @@ from tradingagents.agents.pre_analyst import (
 from tradingagents.agents.utils.agent_states import AgentState
 
 
-def _should_continue_sector_debate(state: AgentState, max_rounds: int = 1) -> str:
-    sector_state = state.get("sector_debate_state", {})
-    count = sector_state.get("count", 0)
-    if count >= 3 * max_rounds:
-        return "Sector Manager"
-    latest = sector_state.get("latest_speaker", "")
-    if latest == "cyclical":
-        return "Growth Analyst"
-    if latest == "growth":
-        return "Defensive Analyst"
-    return "Cyclical Analyst"
+def _should_continue_clear(state: AgentState) -> str:
+    """Simple router: tool_calls → tools_X, else → Msg Clear X."""
+    last_message = state["messages"][-1]
+    if last_message.tool_calls:
+        return "tools_cyclical"
+    return "Msg Clear Cyclical"
 
 
-def _build_test_graph(mock_llm: MagicMock, max_rounds: int = 1):
-    """Build the same graph as standalone.py but with a mock LLM."""
+def _make_mock_llm(responses: list):
+    """Return a mock LLM whose bind_tools chain returns responses in order."""
+    mock_llm = MagicMock()
+
+    def _invoke_side_effect(messages):
+        if not responses:
+            raise RuntimeError("No more mock responses")
+        content = responses.pop(0)
+        mock_msg = MagicMock()
+        mock_msg.tool_calls = []
+        mock_msg.content = content
+        return mock_msg
+
+    mock_llm.bind_tools.return_value.invoke.side_effect = _invoke_side_effect
+    return mock_llm
+
+
+def _build_test_graph(mock_llm: MagicMock):
+    """Build linear pipeline graph."""
     workflow = StateGraph(AgentState)
 
     workflow.add_node("Cyclical Analyst", create_cyclical_analyst(mock_llm))
@@ -41,91 +52,76 @@ def _build_test_graph(mock_llm: MagicMock, max_rounds: int = 1):
     workflow.add_node("Defensive Analyst", create_defensive_analyst(mock_llm))
     workflow.add_node("Sector Manager", create_sector_manager(mock_llm))
 
+    mock_clear = MagicMock(return_value={"messages": [MagicMock(content="Proceed")]})
+    workflow.add_node("Msg Clear Cyclical", mock_clear)
+    workflow.add_node("Msg Clear Growth", mock_clear)
+    workflow.add_node("Msg Clear Defensive", mock_clear)
+    workflow.add_node("Msg Clear Sector", mock_clear)
+
     workflow.add_edge(START, "Cyclical Analyst")
 
-    routes = {
-        "Growth Analyst": "Growth Analyst",
-        "Defensive Analyst": "Defensive Analyst",
-        "Sector Manager": "Sector Manager",
-    }
-    for node_name in ["Cyclical Analyst", "Growth Analyst", "Defensive Analyst"]:
+    for analyst, clear, tool, next_node in (
+        ("Cyclical Analyst", "Msg Clear Cyclical", "tools_cyclical", "Growth Analyst"),
+        ("Growth Analyst", "Msg Clear Growth", "tools_growth", "Defensive Analyst"),
+        ("Defensive Analyst", "Msg Clear Defensive", "tools_defensive", "Sector Manager"),
+        ("Sector Manager", "Msg Clear Sector", "tools_sector_manager", END),
+    ):
         workflow.add_conditional_edges(
-            node_name,
-            lambda s, mr=max_rounds: _should_continue_sector_debate(s, mr),
-            routes,
+            analyst,
+            _should_continue_clear,
+            [tool, clear],
         )
+        workflow.add_edge(clear, next_node)
 
-    workflow.add_edge("Sector Manager", END)
     return workflow.compile()
 
 
 @pytest.mark.integration
 class TestPreAnalystPipeline:
-    """Verify the standalone sector debate graph runs end-to-end with mock LLM."""
+    """Verify the linear pre-analyst pipeline runs end-to-end with mock LLM."""
 
-    def test_graph_compiles_and_runs_one_rotation(self):
-        mock_llm = MagicMock()
-        # Each node call returns a distinct response so the routing logic
-        # can distinguish speakers by content prefix.
-        mock_llm.invoke.side_effect = [
-            MagicMock(content="Cyclical view: energy and financials."),
-            MagicMock(content="Growth view: AI and biotech."),
-            MagicMock(content="Defensive view: staples and healthcare."),
-            MagicMock(content="## Sector Recommendation\n\n### Preferred Sectors\n..."),
-        ]
+    def test_graph_compiles_and_runs_linear_chain(self):
+        mock_llm = _make_mock_llm([
+            "Cyclical view: energy and financials.",
+            "Growth view: AI and biotech.",
+            "Defensive view: staples and healthcare.",
+            "## Sector Recommendation\n\n### Preferred Sectors\n...",
+        ])
 
-        graph = _build_test_graph(mock_llm, max_rounds=1)
+        graph = _build_test_graph(mock_llm)
 
-        initial_state: dict = {
+        final_state = graph.invoke({
             "messages": [("human", "Which sectors?")],
             "trade_date": "2026-07-07",
-            "sector_debate_state": SectorDebateState(
-                cyclical_history="",
-                growth_history="",
-                defensive_history="",
-                history="",
-                current_response="",
-                latest_speaker="",
-                judge_decision="",
-                count=0,
-            ),
-        }
+            "cyclical_report": "",
+            "growth_report": "",
+            "defensive_report": "",
+            "sector_recommendation": "",
+        }, {"recursion_limit": 50})
 
-        final_state = graph.invoke(initial_state, {"recursion_limit": 50})
-
-        assert final_state["sector_debate_state"]["count"] == 3
+        assert "energy and financials" in final_state["cyclical_report"]
+        assert "AI and biotech" in final_state["growth_report"]
+        assert "staples and healthcare" in final_state["defensive_report"]
         assert "Sector Recommendation" in final_state["sector_recommendation"]
-        # Verify each analyst spoke in order
-        history = final_state["sector_debate_state"]["history"]
-        assert "Cyclical view" in history
-        assert "Growth view" in history
-        assert "Defensive view" in history
 
-    def test_sector_manager_does_not_increment_count(self):
-        mock_llm = MagicMock()
-        mock_llm.invoke.side_effect = [
-            MagicMock(content="C1."),
-            MagicMock(content="G1."),
-            MagicMock(content="D1."),
-            MagicMock(content="## Sector Recommendation\n### Preferred Sectors: tech and healthcare"),
-        ]
+    def test_pipeline_order_is_preserved(self):
+        """Verify LLM is invoked 4 times in the correct order."""
+        mock_llm = _make_mock_llm([
+            "Cyclical output.",
+            "Growth output.",
+            "Defensive output.",
+            "Manager output.",
+        ])
 
-        graph = _build_test_graph(mock_llm, max_rounds=1)
-        initial_state: dict = {
-            "messages": [("human", "Which sectors?")],
+        graph = _build_test_graph(mock_llm)
+        graph.invoke({
+            "messages": [("human", "Test")],
             "trade_date": "2026-07-07",
-            "sector_debate_state": SectorDebateState(
-                cyclical_history="",
-                growth_history="",
-                defensive_history="",
-                history="",
-                current_response="",
-                latest_speaker="",
-                judge_decision="",
-                count=0,
-            ),
-        }
+            "cyclical_report": "",
+            "growth_report": "",
+            "defensive_report": "",
+            "sector_recommendation": "",
+        }, {"recursion_limit": 50})
 
-        final_state = graph.invoke(initial_state, {"recursion_limit": 50})
-        # 3 analysts spoke → count=3; manager doesn't bump it
-        assert final_state["sector_debate_state"]["count"] == 3
+        assert mock_llm.bind_tools.return_value.invoke.call_count == 4
+
