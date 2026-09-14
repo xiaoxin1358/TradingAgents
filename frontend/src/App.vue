@@ -59,7 +59,9 @@ const nav = [
         <div class="topbar-right">
           <template v-if="jobs.running">
             <span class="dot running"></span>
-            <span class="mono topbar-status">任务运行中 · {{ jobs.running.type }}</span>
+            <span class="mono topbar-status"
+              >任务运行中 · {{ jobs.running.type }}</span
+            >
           </template>
           <template v-else>
             <span class="dot done"></span>

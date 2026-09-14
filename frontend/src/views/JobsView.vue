@@ -111,7 +111,9 @@ async function start() {
         report_type: reportType.value,
         ...(spiderStart.value ? { start: spiderStart.value } : {}),
         ...(spiderEnd.value ? { end: spiderEnd.value } : {}),
-        ...(spiderTest.value ? { test: "1", limit: String(spiderLimit.value) } : {}),
+        ...(spiderTest.value
+          ? { test: "1", limit: String(spiderLimit.value) }
+          : {}),
       };
     } else {
       params = {
@@ -224,18 +226,30 @@ onBeforeUnmount(() => store.unsubscribe());
           <label class="field">
             <span class="field-label">研报类型</span>
             <select v-model="reportType" class="select">
-              <option v-for="o in reportTypeOptions" :key="o.value" :value="o.value">
+              <option
+                v-for="o in reportTypeOptions"
+                :key="o.value"
+                :value="o.value"
+              >
                 {{ o.label }}
               </option>
             </select>
           </label>
           <label class="field">
             <span class="field-label">开始日期(可空)</span>
-            <input v-model="spiderStart" class="input mono" placeholder="YYYY-MM-DD" />
+            <input
+              v-model="spiderStart"
+              class="input mono"
+              placeholder="YYYY-MM-DD"
+            />
           </label>
           <label class="field">
             <span class="field-label">结束日期(可空)</span>
-            <input v-model="spiderEnd" class="input mono" placeholder="YYYY-MM-DD" />
+            <input
+              v-model="spiderEnd"
+              class="input mono"
+              placeholder="YYYY-MM-DD"
+            />
           </label>
         </template>
       </div>
@@ -247,7 +261,13 @@ onBeforeUnmount(() => store.unsubscribe());
         </label>
         <label v-if="spiderTest" class="field slim">
           <span class="field-label">篇数</span>
-          <input v-model.number="spiderLimit" class="input mono" type="number" min="1" max="100" />
+          <input
+            v-model.number="spiderLimit"
+            class="input mono"
+            type="number"
+            min="1"
+            max="100"
+          />
         </label>
       </div>
 
@@ -323,7 +343,9 @@ onBeforeUnmount(() => store.unsubscribe());
 
     <Transition name="page">
       <div v-if="doneTip" class="card done-tip">
-        <span v-if="doneType === 'spider'">🕷 数据抓取完成!下一步:发起研报阅读</span>
+        <span v-if="doneType === 'spider'"
+          >🕷 数据抓取完成!下一步:发起研报阅读</span
+        >
         <span v-else>✅ 任务完成!</span>
         <RouterLink
           v-if="doneType === 'spider'"

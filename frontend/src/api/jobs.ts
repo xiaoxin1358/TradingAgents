@@ -5,7 +5,10 @@ export const fetchJobs = () => get<{ jobs: Job[] }>("/api/jobs");
 
 export const fetchJob = (id: string) => get<Job>(`/api/jobs/${enc(id)}`);
 
-export async function createJob(type: JobType, params: Record<string, string>): Promise<Job> {
+export async function createJob(
+  type: JobType,
+  params: Record<string, string>,
+): Promise<Job> {
   const res = await fetch("/api/jobs", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

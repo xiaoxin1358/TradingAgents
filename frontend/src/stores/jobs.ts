@@ -1,5 +1,10 @@
 import { defineStore } from "pinia";
-import { cancelJob, createJob, fetchJobs, subscribeJobEvents } from "../api/jobs";
+import {
+  cancelJob,
+  createJob,
+  fetchJobs,
+  subscribeJobEvents,
+} from "../api/jobs";
 import type { Job, JobType } from "../api/types";
 
 interface State {
