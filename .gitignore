@@ -226,3 +226,5 @@ analysis_result/
 # Local design notes and AI-assistant workflows (not published)
 docs/
 .claude/
+ARCHITECTURE.md
+PRE_ANALYST.md
