@@ -114,7 +114,7 @@ class ContradictionStore:
         ).fetchall()
         out = []
         for r in rows:
-            d = dict(zip(_COLS, r))
+            d = dict(zip(_COLS, r, strict=False))
             d["claim_a"] = json.loads(d["claim_a"])
             d["claim_b"] = json.loads(d["claim_b"])
             out.append(d)

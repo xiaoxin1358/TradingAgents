@@ -130,7 +130,7 @@ class ReportsRoot:
 
     def run_file(self, run: str, rel: str) -> str | None:
         p = self._safe_file(run, rel)
-        if p is None or not p.suffix == ".md":
+        if p is None or p.suffix != ".md":
             return None
         return p.read_text(encoding="utf-8", errors="replace")
 

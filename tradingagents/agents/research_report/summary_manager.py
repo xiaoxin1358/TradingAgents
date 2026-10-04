@@ -5,7 +5,6 @@ from __future__ import annotations
 from langchain_core.messages import HumanMessage, RemoveMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
-
 SUMMARY_MANAGER_SYSTEM = """You are the **Chief Investment Strategist**.  Your team of 5 analysts
 has each produced a summary of today's brokerage research reports.  Your job is
 to **cross-validate their findings** and produce a coherent, actionable

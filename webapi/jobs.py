@@ -10,6 +10,7 @@ docs/vue-frontend.md §12. Deliberate simplifications (ponytail:):
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import logging
 import os
@@ -34,7 +35,9 @@ _JOBS_DIR = Path(os.environ.get(
     Path.home() / ".tradingagents",  # jobs.json 在此目录，日志在 jobs/ 子目录
 ))
 # Spider task (docs/webui-spider-task.md): fixed whitelisted cwd + interpreter.
-_SPIDER_DIR = Path(os.environ.get("SPIDER_DIR", r"D:\WORKS\all_data"))
+# Forward slashes: a backslash default is one path segment on POSIX, so
+# Path.name is the whole "D:\WORKS\all_data" string instead of "all_data".
+_SPIDER_DIR = Path(os.environ.get("SPIDER_DIR", "D:/WORKS/all_data"))
 _SPIDER_PYTHON = os.environ.get("SPIDER_PYTHON") or sys.executable
 _SPIDER_TYPES = {"industry", "stock", "macro", "strategy", "broker", "all"}
 
@@ -94,8 +97,8 @@ def validate_params(job_type: str, params: dict) -> dict:
             if limit is not None:
                 try:
                     limit = int(limit)
-                except (TypeError, ValueError):
-                    raise JobError("limit 必须是整数")
+                except (TypeError, ValueError) as exc:
+                    raise JobError("limit 必须是整数") from exc
                 if not 1 <= limit <= 100:
                     raise JobError("limit 超出范围 1-100")
                 out["limit"] = str(limit)
@@ -300,10 +303,8 @@ class JobManager:
     def shutdown(self) -> None:
         """FastAPI lifespan exit: kill the running child (docs 12.3)."""
         for job_id, proc in self._procs.items():
-            try:
+            with contextlib.suppress(OSError):
                 proc.kill()
-            except OSError:
-                pass
             job = self.jobs.get(job_id)
             if job and job.get("status") == "running":
                 job["status"] = "interrupted"

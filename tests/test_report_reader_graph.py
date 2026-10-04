@@ -198,6 +198,6 @@ def test_rerun_reuses_id_no_duplicate(run_graph):
     ids = {cid for cid, _, _ in rows}
     assert any("AI算力" in cid for cid in ids)
     assert any("光模块" in cid for cid in ids)
-    for cid, first_seen, last_seen in rows:
+    for _cid, first_seen, last_seen in rows:
         assert first_seen == "2026-08-10"
         assert last_seen == "2026-08-10"
