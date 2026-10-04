@@ -128,7 +128,7 @@ if __name__ == "__main__":
         config["backend_url"] = args.base_url
 
     print("=" * 60)
-    print(f"  Pre-Analyst: Industry Sector Analysis Pipeline")
+    print("  Pre-Analyst: Industry Sector Analysis Pipeline")
     print(f"  Ticker: {args.ticker}  |  Date: {trade_date}")
     print(f"  Provider: {config['llm_provider']}  |  Model: {config['quick_think_llm']}")
     print("=" * 60)

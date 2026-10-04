@@ -7,6 +7,7 @@ mutate the contradiction ledger.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import sqlite3
 from datetime import date
@@ -102,7 +103,7 @@ def list_contradictions(
     today = date.today().isoformat()
     out = []
     for r in rows:
-        d = _decorate(dict(zip(_COLS, r)), today)
+        d = _decorate(dict(zip(_COLS, r, strict=False)), today)
         if min_days is not None and (d["days_open"] is None or d["days_open"] < min_days):
             continue
         out.append(d)
@@ -122,7 +123,7 @@ def get_contradiction(db_path: str | Path, cid: str) -> dict | None:
         conn.close()
     if not row:
         return None
-    return _decorate(dict(zip(_COLS, row)), date.today().isoformat())
+    return _decorate(dict(zip(_COLS, row, strict=False)), date.today().isoformat())
 
 
 def stats(db_path: str | Path) -> dict:
@@ -160,10 +161,8 @@ def stats(db_path: str | Path) -> dict:
         except (TypeError, ValueError):
             cause = "未生成"
         causes[cause] = causes.get(cause, 0) + 1
-        try:
+        with contextlib.suppress(ValueError):
             longest = max(longest, (date.fromisoformat(today) - date.fromisoformat(first_seen)).days)
-        except ValueError:
-            pass
     out["cause_dist"] = causes
     out["longest_open"] = longest
     return out

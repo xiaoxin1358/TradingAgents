@@ -4,7 +4,6 @@ graphs) — docs/vue-frontend.md §12.7."""
 import json
 import sys
 import time
-from pathlib import Path
 
 import pytest
 

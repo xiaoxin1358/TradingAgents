@@ -17,10 +17,9 @@ from fastapi import Body, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
-from . import contradictions as ctr
-from . import jobs as jobs_mod
-from . import reports as rpt
-from . import settings as stg
+from . import contradictions as ctr, jobs as jobs_mod, reports as rpt, settings as stg
+
+_REQUIRED_BODY = Body(...)
 
 _ROOT = Path(__file__).resolve().parent.parent
 _REPORTS_DIR = Path(os.environ.get("TRADINGAGENTS_REPORTS_DIR", _ROOT / "reports"))
@@ -177,7 +176,7 @@ def memory():
 # ── jobs (M2, docs 12) ───────────────────────────────────────────────
 
 @app.post("/api/jobs", status_code=201)
-def create_job(payload: dict = Body(...)):
+def create_job(payload: dict = _REQUIRED_BODY):
     job_type = payload.get("type")
     params = payload.get("params") or {}
     if not isinstance(job_type, str) or not isinstance(params, dict):
@@ -185,7 +184,7 @@ def create_job(payload: dict = Body(...)):
     try:
         return jobs.start(job_type, params)
     except jobs_mod.JobError as exc:
-        raise HTTPException(exc.status, str(exc))
+        raise HTTPException(exc.status, str(exc)) from exc
 
 
 @app.get("/api/jobs")
