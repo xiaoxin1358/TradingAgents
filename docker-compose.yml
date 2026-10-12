@@ -8,6 +8,26 @@ services:
     tty: true
     stdin_open: true
 
+  # Daily research-report reader. Start it by name so the interactive CLI
+  # stays down: docker compose up -d report-reader
+  report-reader:
+    build: .
+    profiles:
+      - reader
+    env_file:
+      - .env
+    environment:
+      TZ: ${REPORT_READER_TZ:-Asia/Shanghai}
+      REPORT_READER_ROOT: ${REPORT_READER_ROOT:-/data/report_data}
+      REPORT_READER_OUTPUT: ${REPORT_READER_OUTPUT:-/data/reports}
+      REPORT_READER_DB: ${REPORT_READER_DB:-/data/reports/contradictions.db}
+      REPORT_READER_SCHEDULE: "${REPORT_READER_SCHEDULE:-30 8 * * 1-5}"
+    volumes:
+      - report_data:/data/report_data
+      - report_reader_output:/data/reports
+    entrypoint: ["python", "schedule_report_reader.py"]
+    restart: unless-stopped
+
   ollama:
     image: ollama/ollama:latest
     volumes:
@@ -34,3 +54,5 @@ services:
 volumes:
   tradingagents_data:
   ollama_data:
+  report_data:
+  report_reader_output:

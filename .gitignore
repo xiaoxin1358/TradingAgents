@@ -223,8 +223,10 @@ __marimo__/
 reports/
 analysis_result/
 
-# Local design notes and AI-assistant workflows (not published)
-docs/
+# Local design notes and AI-assistant workflows (not published).
+# docs/deploy-docker.md is the tracked container deploy guide.
+docs/*
+!docs/deploy-docker.md
 .claude/
 ARCHITECTURE.md
 PRE_ANALYST.md
