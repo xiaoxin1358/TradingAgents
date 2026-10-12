@@ -135,6 +135,10 @@ For local models with Ollama:
 docker compose --profile ollama run --rm tradingagents-ollama
 ```
 
+The same Compose file schedules the daily research-report reader.
+Build, Desktop smoke test, and cloud VM start are in
+[docs/deploy-docker.md](docs/deploy-docker.md).
+
 ### Required APIs
 
 TradingAgents supports multiple LLM providers. Set the API key for your chosen provider:

@@ -28,4 +28,4 @@ if hasattr(sys.stdout, "reconfigure"):
 from run_report_reader import main  # noqa: E402
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

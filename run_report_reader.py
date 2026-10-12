@@ -3,12 +3,18 @@
 Usage:
     python run_report_reader.py
     python run_report_reader.py --date 2026-07-26
+    python run_report_reader.py --smoke
+
+Environment (used when the matching flag is omitted):
+    REPORT_READER_ROOT, REPORT_READER_DATE, REPORT_READER_OUTPUT,
+    REPORT_READER_DB, REPORT_READER_SMOKE=true|false
 """
 
 from __future__ import annotations
 
 import argparse
 import logging
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -25,6 +31,7 @@ _project_root = Path(__file__).resolve().parent
 if str(_project_root) not in sys.path:
     sys.path.insert(0, str(_project_root))
 
+from tradingagents.agents.research_report.tools import load_all_reports  # noqa: E402
 from tradingagents.default_config import DEFAULT_CONFIG  # noqa: E402
 from tradingagents.graph.research_report_graph import ResearchReportGraph  # noqa: E402
 from tradingagents.llm_clients.factory import create_llm_client  # noqa: E402
@@ -36,6 +43,8 @@ logging.basicConfig(
 logger = logging.getLogger("report_reader")
 
 DEFAULT_ROOT = r"D:\WORKS\all_data\data\report_data"
+BUNDLED_SAMPLE_ROOT = _project_root / "docker" / "sample_report_data"
+_TRUE = {"1", "true", "yes", "on"}
 
 CATEGORIES = ["宏观研究", "行业研报", "个股研报", "策略报告", "券商晨报"]
 CATEGORY_FIELDS = {
@@ -47,43 +56,120 @@ CATEGORY_FIELDS = {
 }
 
 
-def main():
+def _env(name: str) -> str | None:
+    value = os.environ.get(name)
+    if value is None or value.strip() == "":
+        return None
+    return value.strip()
+
+
+def _enabled(name: str) -> bool:
+    return os.environ.get(name, "").strip().lower() in _TRUE
+
+
+def _category_dirs(root: Path, date: str) -> list[str]:
+    return [c for c in CATEGORIES if (root / date / c).is_dir()]
+
+
+def run_smoke(root: str, date: str, output: str | None) -> int:
+    """Prove the reader can start. Empty input falls back to the bundled sample. No LLM calls."""
+    root_path = Path(root)
+    found = _category_dirs(root_path, date) if root_path.is_dir() else []
+    source = "input"
+    used_root, used_date = root_path, date
+    if not found:
+        if not BUNDLED_SAMPLE_ROOT.is_dir():
+            logger.error(
+                "report reader smoke failed: no categories under %s/%s and no bundled sample at %s",
+                root,
+                date,
+                BUNDLED_SAMPLE_ROOT,
+            )
+            return 1
+        sample_dates = sorted(p.name for p in BUNDLED_SAMPLE_ROOT.iterdir() if p.is_dir())
+        used_date = next((name for name in sample_dates if _category_dirs(BUNDLED_SAMPLE_ROOT, name)), "")
+        if not used_date:
+            logger.error("bundled sample has no category folders: %s", BUNDLED_SAMPLE_ROOT)
+            return 1
+        used_root = BUNDLED_SAMPLE_ROOT
+        found = _category_dirs(used_root, used_date)
+        source = "bundled-sample"
+        logger.info(
+            "no category folders under %s/%s; using bundled sample %s/%s",
+            root,
+            date,
+            used_root,
+            used_date,
+        )
+
+    raw = load_all_reports(str(used_root), used_date)
+    loaded = sum(1 for text in raw.values() if text and not text.startswith("[ERROR]"))
+    if output:
+        try:
+            out = Path(output)
+            out.mkdir(parents=True, exist_ok=True)
+            probe = out / ".smoke-ok"
+            probe.write_text("ok\n", encoding="utf-8")
+            probe.unlink()
+        except OSError as exc:
+            logger.error("report reader smoke cannot write output %s: %s", output, exc)
+            return 1
+
+    message = (
+        f"report reader smoke OK source={source} root={used_root} "
+        f"date={used_date} categories={len(found)} loaded={loaded}"
+    )
+    logger.info(message)
+    print(message)
+    return 0
+
+
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Research Report Reader — summarise broker research reports with LLM agents."
     )
     parser.add_argument(
         "--root",
-        default=DEFAULT_ROOT,
-        help=f"Root directory of crawled report data (default: {DEFAULT_ROOT}).",
+        default=_env("REPORT_READER_ROOT") or DEFAULT_ROOT,
+        help=f"Root directory of crawled report data (env REPORT_READER_ROOT, default: {DEFAULT_ROOT}).",
     )
     parser.add_argument(
         "--date",
-        default=datetime.now().strftime("%Y-%m-%d"),
-        help="Analysis date in YYYY-MM-DD (default: today).",
+        default=_env("REPORT_READER_DATE") or datetime.now().strftime("%Y-%m-%d"),
+        help="Analysis date in YYYY-MM-DD (env REPORT_READER_DATE, default: today).",
     )
     parser.add_argument(
         "--output",
-        default=None,
-        help="Output directory (default: reports/{date}/).",
+        default=_env("REPORT_READER_OUTPUT"),
+        help="Output directory (env REPORT_READER_OUTPUT, default: reports/{date}/).",
     )
     parser.add_argument(
         "--db",
-        default=None,
-        help="Path to the contradictions SQLite database (default: reports/contradictions.db).",
+        default=_env("REPORT_READER_DB"),
+        help="Contradictions SQLite path (env REPORT_READER_DB, default: reports/contradictions.db).",
     )
-    args = parser.parse_args()
+    parser.add_argument(
+        "--smoke",
+        action="store_true",
+        default=_enabled("REPORT_READER_SMOKE"),
+        help="Start against empty or sample data and exit. Does not call an LLM.",
+    )
+    args = parser.parse_args(argv)
+
+    if args.smoke:
+        return run_smoke(args.root, args.date, args.output)
 
     # Validate root directory exists
     root = args.root
     if not Path(root).is_dir():
         logger.error("Root directory not found: %s", root)
-        sys.exit(1)
+        return 1
 
     # Validate at least one category folder exists
-    existing = [c for c in CATEGORIES if Path(root, args.date, c).is_dir()]
+    existing = _category_dirs(Path(root), args.date)
     if not existing:
         logger.error("No category folders found under %s/%s/", root, args.date)
-        sys.exit(1)
+        return 1
     logger.info("Found %d category folder(s): %s", len(existing), ", ".join(existing))
 
     # Default output directory: reports/{date}/
@@ -161,7 +247,8 @@ def main():
         saved += 1
 
     print(f"\nDone. {saved} report(s) saved to: {out_dir}")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
